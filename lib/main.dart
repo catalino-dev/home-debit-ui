@@ -17,6 +17,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Home Debit',
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       home: RegistrationScreen(customerService: customerService),
     );
