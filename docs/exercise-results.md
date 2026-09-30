@@ -4,7 +4,7 @@ title: Exercise results — screenshots and scenarios
 description: Visual evidence of US-01 (Create Customer Registration) and US-02 (View Customer Profile) running end-to-end against the live Flutter UI, Spring Boot backend, and PostgreSQL.
 resource: workspace:home-debit-ui-and-home-debit/exercise-results
 tags: [home-debit, week-1, us-01, us-02, screenshots, exercise-results]
-timestamp: 2026-09-28T15:40:00+08:00
+timestamp: 2026-09-30T11:45:00+08:00
 okf_version: "0.1"
 source: ../lib/screens/registration_screen.dart
 ---
@@ -23,6 +23,13 @@ relevant scenario). For the full test matrix and prior automated-test
 results, see [Test evidence and scenarios](testing.md).
 
 Screenshot files are stored under [`docs/screenshots/`](screenshots/).
+
+> **About the screenshots:** captured at a Pixel-class phone viewport
+> (412×860 CSS px) on 2026-09-30, then composed into an Android device frame
+> (status bar, punch-hole camera, gesture navigation) for presentation.
+> `MaterialApp` sets `debugShowCheckedModeBanner: false`, so debug-mode
+> captures carry no DEBUG banner. The frame is cosmetic — everything inside
+> the screen is the real app.
 
 ## 1. Registration screen on startup
 
@@ -64,29 +71,30 @@ before any request reaches the backend.
 Acceptance criteria: *"Successful registration shows the entered customer
 name"*, *"Successful registration navigates to Profile"*, and *"The exact
 submitted information is displayed."* Submitting valid details
-(`Juan Dela Cruz` / `juan.delacruz.20260928@example.test` / `09201234567`)
+(`Juan Dela Cruz` / `juan.delacruz.20260930@example.test` / `09201234567`)
 sends `POST /api/customers`, which returned **HTTP 201**. The screen then
 navigated to Customer Profile displaying exactly what was submitted.
 
-![Customer Profile screen showing Full Name 'Juan Dela Cruz', Email 'juan.delacruz.20260928@example.test', and Mobile Number '09201234567', with a Back to Registration button](screenshots/04-registration-success-profile.png)
+![Customer Profile screen showing Full Name 'Juan Dela Cruz', Email 'juan.delacruz.20260930@example.test', and Mobile Number '09201234567', with a Back to Registration button](screenshots/04-registration-success-profile.png)
 
-**Backend confirmation** — a direct `GET /api/customers/5` (the ID the
+**Backend confirmation** — a direct query for `id=6` (the ID the
 backend generated for this registration) returned the identical record,
 proving the customer was actually persisted in PostgreSQL and not just held
 in the Flutter widget tree:
 
 ```json
 {
-  "id": 5,
+  "id": 6,
   "fullName": "Juan Dela Cruz",
-  "email": "juan.delacruz.20260928@example.test",
+  "email": "juan.delacruz.20260930@example.test",
   "mobileNumber": "09201234567"
 }
 ```
 
-A second registration earlier in this same session (`Maria Santos`,
-`maria.santos.20260928@example.test`, `09171234567`) was verified the same
-way at `id=4`, confirming this isn't a one-off result.
+Earlier verification passes persisted `id=4` (`Maria Santos`,
+`maria.santos.20260928@example.test`, `09171234567`) and `id=5`
+(`Juan Dela Cruz`, 2026-09-28 run) the same
+way, confirming this isn't a one-off result.
 
 ## 5. Duplicate email (backend error, edge case)
 
@@ -94,7 +102,7 @@ Acceptance criteria beyond the Week 1 brief but exercised as part of the
 integration: the backend rejects a second registration with an email that
 already exists, and the Flutter UI must surface that failure instead of
 silently failing or navigating away. Resubmitting the same
-`juan.delacruz.20260928@example.test` a second time produced
+`juan.delacruz.20260930@example.test` a second time produced
 **HTTP 409 Conflict** from the backend, which the UI displayed as a specific,
 actionable message while remaining on the registration screen (not
 navigating to Profile, and not losing the entered data).
