@@ -25,11 +25,11 @@ results, see [Test evidence and scenarios](testing.md).
 Screenshot files are stored under [`docs/screenshots/`](screenshots/).
 
 > **About the screenshots:** captured at a Pixel-class phone viewport
-> (412×860 CSS px) on 2026-09-30, then composed into an Android device frame
-> (status bar, punch-hole camera, gesture navigation) for presentation.
-> `MaterialApp` sets `debugShowCheckedModeBanner: false`, so debug-mode
-> captures carry no DEBUG banner. The frame is cosmetic — everything inside
-> the screen is the real app.
+> (412×892 CSS px) on 2026-09-30, then composed into an Android device frame
+> (status bar, punch-hole camera, gesture navigation) at 2× resolution for
+> presentation. `MaterialApp` sets `debugShowCheckedModeBanner: false`, so
+> debug-mode captures carry no DEBUG banner. The frame is cosmetic —
+> everything inside the screen is the real app.
 
 ## 1. Registration screen on startup
 
@@ -77,24 +77,24 @@ navigated to Customer Profile displaying exactly what was submitted.
 
 ![Customer Profile screen showing Full Name 'Juan Dela Cruz', Email 'juan.delacruz.20260930@example.test', and Mobile Number '09201234567', with a Back to Registration button](screenshots/04-registration-success-profile.png)
 
-**Backend confirmation** — a direct query for `id=6` (the ID the
+**Backend confirmation** — a direct query for `id=7` (the ID the
 backend generated for this registration) returned the identical record,
 proving the customer was actually persisted in PostgreSQL and not just held
 in the Flutter widget tree:
 
 ```json
 {
-  "id": 6,
+  "id": 7,
   "fullName": "Juan Dela Cruz",
   "email": "juan.delacruz.20260930@example.test",
   "mobileNumber": "09201234567"
 }
 ```
 
-Earlier verification passes persisted `id=4` (`Maria Santos`,
-`maria.santos.20260928@example.test`, `09171234567`) and `id=5`
-(`Juan Dela Cruz`, 2026-09-28 run) the same
-way, confirming this isn't a one-off result.
+A second registration in the same verification pass (`Maria Santos`,
+`maria.santos.20260930@example.test`, `09171234567`) was verified the same
+way at `id=8`, confirming this isn't a one-off result; the 2026-09-28 run's
+records (`id=4`, `id=5`) remain persisted alongside them.
 
 ## 5. Duplicate email (backend error, edge case)
 

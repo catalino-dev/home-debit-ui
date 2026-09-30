@@ -2,11 +2,11 @@
 
 ## 2026-09-30
 * **Screenshot refresh**: Re-captured all five exercise screenshots against
-  the live stack at a Pixel-class phone viewport (412×860) and composed them
-  into an Android device frame; `debugShowCheckedModeBanner: false` was set
-  in `lib/main.dart` so captures carry no DEBUG banner. Updated
-  `exercise-results.md` evidence to the new verification run (`id=6`,
-  `juan.delacruz.20260930@example.test`).
+  the live stack at a Pixel-class phone viewport and composed them into an
+  Android device frame (2× resolution); `debugShowCheckedModeBanner: false`
+  was set in `lib/main.dart` so captures carry no DEBUG banner. Updated
+  `exercise-results.md` evidence to the new verification run (`id=7` and
+  `id=8`, `*.20260930@example.test`).
 
 ## 2026-09-28
 * **Creation**: Generated from the Week 1 training brief, the Flutter UI workspace, and the sibling `home-debit` Spring Boot workspace.
