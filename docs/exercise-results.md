@@ -145,6 +145,11 @@ ProfileScreen (StatelessWidget, receives Customer via constructor)
         └── OutlinedButton — "Back to Registration" (Navigator.pop)
 ```
 
+> This tree is the Week 1 state. In Week 2 `ProfileScreen` became Stateful,
+> gained a Nickname row and an **Edit Profile** button, and the Back button
+> became `AppSecondaryButton` — see
+> [Week 2 exercise results](week-2-exercise-results.md).
+
 ## How to reproduce
 
 1. Start Postgres, the backend, and the Flutter web UI — see

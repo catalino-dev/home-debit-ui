@@ -81,6 +81,10 @@ configuration or constructor data. `RegistrationScreen` is stateful because
 submitting the form changes `_isSubmitting`, which changes the button's
 appearance and enabled state. Text controllers hold the editable field values.
 
+> **Week 2 update:** `ProfileScreen` became a `StatefulWidget` for US-04,
+> because it now owns the saved customer and replaces it after an edit. See
+> [Edit customer profile (US-04)](../week-2/edit-customer-profile.md#widget-choices).
+
 ## Sources
 
 * [Flutter application entry point](../../lib/main.dart)

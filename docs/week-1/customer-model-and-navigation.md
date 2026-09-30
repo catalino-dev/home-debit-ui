@@ -25,8 +25,14 @@ route builder. `ProfileScreen` receives the required object in its
 constructor and renders its fields. The Back button calls `Navigator.pop` to
 remove that route and return to registration.
 
-This is in-memory screen-to-screen data passing. The model has no database ID,
-and the UI does not yet fetch the profile from the backend.
+The registered `Customer` passed to the profile is the backend's response, so
+it carries the database-generated `id`; the profile renders it directly
+rather than re-fetching with `GET /api/customers/{id}`.
+
+> **Week 2 update:** `Customer` gained an optional `String? nickname`
+> ([US-03](../week-2/optional-customer-information.md)), and the profile
+> screen now owns the customer and can edit it, receiving the saved result
+> back through `Navigator.pop` ([US-04](../week-2/edit-customer-profile.md)).
 
 ## What `BuildContext` does here
 

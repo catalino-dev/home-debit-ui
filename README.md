@@ -8,7 +8,7 @@ registrations in PostgreSQL.
 
 Start at the [documentation index](./docs/index.md) for:
 
-- Week 1 exercises and Flutter concept explanations
+- Week 1 and Week 2 exercises and Flutter concept explanations
 - Frontend structure and behavior
 - Backend API, persistence, and configuration
 - Local setup and run instructions
@@ -42,7 +42,8 @@ shutdown details.
 
 ### Connect the Flutter UI
 
-The UI posts registrations to `POST /api/customers`. Its default API URL is
+The UI posts registrations to `POST /api/customers` and saves profile edits
+with `PUT /api/customers/{id}`. Its default API URL is
 `http://localhost:8080` on web and most desktop/iOS simulator targets, and
 `http://10.0.2.2:8080` on the Android emulator. Override the host when needed:
 
