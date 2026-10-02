@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Debit — Week 1 Flutter Exercise</title>
+<style>
+  :root {
+    --bg0: #10131a;
+    --bg1: #171c26;
+    --card: #1d2330;
+    --ink: #eef1f7;
+    --muted: #9aa3b5;
+    --red: #e0263a;
+    --red-soft: #ff5a6a;
+    --green: #38c172;
+    --amber: #f5b942;
+    --line: #2c3547;
+    --mono: "Cascadia Code", Consolas, "SF Mono", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg0); }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+  }
+  #deck { height: 100%; position: relative; }
+  .slide {
+    position: absolute; inset: 0; display: none;
+    padding: 4.5vh 6vw; flex-direction: column;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(224,38,58,.14), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(56,110,224,.10), transparent 60%),
+      linear-gradient(160deg, var(--bg0), var(--bg1));
+  }
+  .slide.active { display: flex; animation: fade .45s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .kicker {
+    color: var(--red-soft); font-weight: 600; letter-spacing: .18em;
+    text-transform: uppercase; font-size: clamp(11px, 1.3vh, 15px); margin-bottom: 1.2vh;
+  }
+  h1 { font-size: clamp(34px, 6.5vh, 64px); font-weight: 700; line-height: 1.08; }
+  h2 { font-size: clamp(24px, 4.6vh, 44px); font-weight: 700; margin-bottom: 2.8vh; }
+  .sub { color: var(--muted); font-size: clamp(15px, 2.2vh, 21px); margin-top: 2vh; max-width: 62ch; line-height: 1.55; }
+  .grow { flex: 1; display: flex; align-items: center; }
+  .cols { display: flex; gap: 3vw; width: 100%; align-items: center; }
+  .col { flex: 1; min-width: 0; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 2.4vh 1.6vw; box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  }
+  ul.bullets { list-style: none; display: flex; flex-direction: column; gap: 1.8vh; }
+  ul.bullets li {
+    padding-left: 2.2ch; position: relative;
+    font-size: clamp(15px, 2.3vh, 21px); line-height: 1.5; color: #d7dce6;
+  }
+  ul.bullets li::before { content: "▸"; position: absolute; left: 0; color: var(--red-soft); }
+  ul.bullets b { color: var(--ink); }
+
+  .phones { display: flex; gap: 2.5vw; justify-content: center; align-items: flex-end; }
+  .phone-wrap { text-align: center; }
+  .phone-wrap img {
+    height: 66vh; width: auto; border-radius: 18px;
+    filter: drop-shadow(0 18px 38px rgba(0,0,0,.55));
+  }
+  .phone-wrap .cap { margin-top: 1.6vh; color: var(--muted); font-size: clamp(12px, 1.8vh, 16px); }
+
+  pre.code {
+    font-family: var(--mono); font-size: clamp(12px, 1.9vh, 17px); line-height: 1.55;
+    background: #12161f; border: 1px solid var(--line); border-radius: 12px;
+    padding: 2vh 1.4vw; overflow: auto; color: #c9d4e8;
+  }
+  .tok-k { color: #7fb4ff; } .tok-s { color: #7ee2a8; } .tok-n { color: #f5b942; }
+
+  table.tbl { border-collapse: collapse; width: 100%; font-size: clamp(13px, 2vh, 18px); }
+  table.tbl th, table.tbl td { text-align: left; padding: 1.2vh 1vw; border-bottom: 1px solid var(--line); }
+  table.tbl th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: .78em; letter-spacing: .08em; }
+  table.tbl td:first-child { color: var(--ink); font-weight: 600; }
+  table.tbl td { color: #cbd2df; }
+  .ok { color: var(--green); font-weight: 700; }
+  .warn { color: var(--amber); font-weight: 700; }
+  .pill {
+    display: inline-block; font-family: var(--mono); font-size: .85em;
+    background: #12161f; border: 1px solid var(--line); border-radius: 999px; padding: .15em .8em;
+  }
+
+  .flow { display: flex; align-items: center; justify-content: center; gap: 1.4vw; width: 100%; }
+  .node {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 2.6vh 1.6vw; text-align: center; min-width: 15vw;
+    box-shadow: 0 10px 26px rgba(0,0,0,.35);
+  }
+  .node .t { font-weight: 700; font-size: clamp(16px, 2.6vh, 24px); }
+  .node .d { color: var(--muted); font-size: clamp(12px, 1.8vh, 16px); margin-top: .8vh; }
+  .node.accent { border-color: rgba(224,38,58,.55); box-shadow: 0 10px 26px rgba(224,38,58,.16); }
+  .arrow { color: var(--muted); font-size: clamp(18px, 3.4vh, 30px); text-align: center; }
+  .arrow .lbl { display: block; font-size: clamp(10px, 1.5vh, 13px); font-family: var(--mono); margin-top: .4vh; color: #8b94a7; }
+
+  footer {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 1.6vh 6vw;
+    display: flex; justify-content: space-between; align-items: center;
+    color: #6f7890; font-size: clamp(11px, 1.6vh, 14px); pointer-events: none;
+  }
+  #bar { position: absolute; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--red), var(--red-soft)); width: 0; transition: width .3s ease; z-index: 5; }
+  #dots { position: absolute; right: 2vw; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 1.2vh; z-index: 5; }
+  #dots span { width: 8px; height: 8px; border-radius: 50%; background: #39415a; cursor: pointer; }
+  #dots span.on { background: var(--red-soft); }
+  .hint { position: absolute; bottom: 1.6vh; left: 50%; transform: translateX(-50%); color: #4d5670; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div id="deck">
+
+  <!-- 1 · Title -->
+  <section class="slide">
+    <div class="grow"><div>
+      <div class="kicker">GMA PH · Flutter Enablement · Week 1</div>
+      <h1>Home Debit</h1>
+      <h1 style="color:var(--red-soft)">Customer Registration, end to end</h1>
+      <p class="sub">A Flutter registration form, a Spring Boot API, and a PostgreSQL
+      record that proves it all really happened — built to self-care-mobile
+      design patterns and coding standards.</p>
+    </div></div>
+    <p class="sub" style="margin-top:0">Flutter Web · Spring Boot / Java 25 · PostgreSQL</p>
+  </section>
+
+  <!-- 2 · The exercise -->
+  <section class="slide">
+    <div class="kicker">The brief</div>
+    <h2>Week 1 — two user stories, one working product</h2>
+    <div class="grow"><div class="cols">
+      <div class="col card">
+        <ul class="bullets">
+          <li><b>US-01 · Create Customer Registration</b> — form with Full Name,
+            Email, Mobile Number; required-field and format validation.</li>
+          <li><b>US-02 · View Customer Profile</b> — successful registration
+            navigates to a profile showing the exact submitted information.</li>
+        </ul>
+      </div>
+      <div class="col card">
+        <ul class="bullets">
+          <li>Widget tree &amp; <b>Stateless vs Stateful</b> thinking</li>
+          <li><b>Form + validators</b>, controllers, setState</li>
+          <li>Typed <b>Customer model</b> passed through <b>Navigator</b></li>
+          <li>Beyond the brief: a <b>real backend</b> instead of a mock</li>
+        </ul>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 3 · Architecture -->
+  <section class="slide">
+    <div class="kicker">Architecture</div>
+    <h2>Three tiers, real HTTP, real persistence</h2>
+    <div class="grow">
+      <div class="flow">
+        <div class="node accent">
+          <div class="t">home-debit-ui</div>
+          <div class="d">Flutter Web · :5100<br>Registration → Profile<br>App* widgets + theme tokens</div>
+        </div>
+        <div class="arrow">⟶<span class="lbl">POST /api/customers</span></div>
+        <div class="node">
+          <div class="t">home-debit</div>
+          <div class="d">Spring Boot · :8080<br>validation · CORS · DTO records<br>thin controller → service</div>
+        </div>
+        <div class="arrow">⟶<span class="lbl">JPA + Flyway</span></div>
+        <div class="node">
+          <div class="t">PostgreSQL</div>
+          <div class="d">:5432 · table <span class="pill">customer</span><br>generated id returned<br>to the UI</div>
+        </div>
+      </div>
+    </div>
+    <p class="sub">The profile screen renders <b>what the backend returned</b> —
+    including the database-generated ID — not what the form remembered.</p>
+  </section>
+
+  <!-- 4 · Standards -->
+  <section class="slide">
+    <div class="kicker">Design patterns &amp; coding standards</div>
+    <h2>Scaled down from self-care-mobile, rules intact</h2>
+    <div class="grow"><div class="card" style="width:100%">
+      <table class="tbl">
+        <tr><th>self-care-mobile</th><th>home-debit</th></tr>
+        <tr><td>Koyal* design-system widgets</td><td><span class="pill">AppTextField</span> <span class="pill">AppPrimaryButton</span> <span class="pill">AppCard</span></td></tr>
+        <tr><td>Semantic theme tokens (no raw colors/padding)</td><td><span class="pill">AppColors</span> <span class="pill">AppSpacing</span> <span class="pill">AppTextStyles</span></td></tr>
+        <tr><td>Repositories returning Either&lt;Failure, T&gt;</td><td>Service throwing typed <span class="pill">CustomerServiceException</span></td></tr>
+        <tr><td>DI via get_it</td><td>Constructor-injected services with production defaults</td></tr>
+        <tr><td>Strict gma_lints</td><td><span class="pill">flutter analyze</span> — zero issues</td></tr>
+      </table>
+    </div></div>
+    <p class="sub">Widgets never import screens or services; HTTP lives only in the
+    service layer; every new visual token goes into <b>lib/theme/</b> first.</p>
+  </section>
+
+  <!-- 5 · Demo: startup + validation -->
+  <section class="slide">
+    <div class="kicker">Live demo · scenarios 1–3</div>
+    <h2>Startup &amp; client-side validation</h2>
+    <div class="grow"><div class="phones">
+      <div class="phone-wrap">
+        <img src="../docs/screenshots/01-registration-startup.png" alt="Registration screen on startup">
+        <div class="cap">Launches straight into registration</div>
+      </div>
+      <div class="phone-wrap">
+        <img src="../docs/screenshots/02-registration-empty-field-errors.png" alt="Empty field validation errors">
+        <div class="cap">Required-field messages, nothing sent</div>
+      </div>
+      <div class="phone-wrap">
+        <img src="../docs/screenshots/03-registration-invalid-format-errors.png" alt="Invalid format validation errors">
+        <div class="cap">Format checks reject bad email / mobile</div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 6 · Demo: success -->
+  <section class="slide">
+    <div class="kicker">Live demo · scenario 4</div>
+    <h2>Register → HTTP 201 → Profile</h2>
+    <div class="grow"><div class="cols">
+      <div class="col phones">
+        <div class="phone-wrap">
+          <img src="../docs/screenshots/04-registration-success-profile.png" alt="Customer profile after successful registration">
+          <div class="cap">Profile shows exactly what was submitted</div>
+        </div>
+      </div>
+      <div class="col">
+        <p class="sub" style="margin:0 0 1.6vh">Backend confirmation — the record
+        the database persisted, fetched independently of the UI:</p>
+        <pre class="code">{
+  <span class="tok-k">"id"</span>: <span class="tok-n">7</span>,
+  <span class="tok-k">"fullName"</span>: <span class="tok-s">"Juan Dela Cruz"</span>,
+  <span class="tok-k">"email"</span>: <span class="tok-s">"juan.delacruz.20260930@example.test"</span>,
+  <span class="tok-k">"mobileNumber"</span>: <span class="tok-s">"09201234567"</span>
+}</pre>
+        <p class="sub" style="margin-top:1.6vh">The <b>id</b> was generated by
+        PostgreSQL — proof the round trip is real, not widget-tree state.</p>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 7 · Demo: duplicate -->
+  <section class="slide">
+    <div class="kicker">Live demo · scenario 5</div>
+    <h2>Backend errors surface, gracefully</h2>
+    <div class="grow"><div class="cols">
+      <div class="col phones">
+        <div class="phone-wrap">
+          <img src="../docs/screenshots/05-registration-duplicate-email-error.png" alt="Duplicate email error on registration form">
+          <div class="cap">HTTP 409 → actionable message, data kept</div>
+        </div>
+      </div>
+      <div class="col card">
+        <ul class="bullets">
+          <li>Same email resubmitted → backend returns <b>409 Conflict</b></li>
+          <li>UI stays on the form — <b>no navigation, no lost input</b></li>
+          <li>Specific message: <i>"An account with this email already exists."</i></li>
+          <li>Network failures and 400 validation errors follow the same path —
+            mapped in the service, never parsed in the UI</li>
+        </ul>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 8 · Verification -->
+  <section class="slide">
+    <div class="kicker">Verification</div>
+    <h2>Every claim is backed by a check</h2>
+    <div class="grow"><div class="card" style="width:100%">
+      <table class="tbl">
+        <tr><th>Check</th><th>Result</th></tr>
+        <tr><td>flutter analyze</td><td><span class="ok">No issues</span></td></tr>
+        <tr><td>flutter test — validation, mapping, errors, navigation</td><td><span class="ok">10 / 10 passed</span></td></tr>
+        <tr><td>Backend tests (gradlew test)</td><td><span class="ok">Passed</span></td></tr>
+        <tr><td>Live browser smoke test, UI → API → DB</td><td><span class="ok">All 5 scenarios verified</span></td></tr>
+        <tr><td>Persistence confirmed in PostgreSQL</td><td><span class="ok">id=7 matches submission</span></td></tr>
+        <tr><td>Android APK build</td><td><span class="warn">Known limitation — web is the verified target</span></td></tr>
+      </table>
+    </div></div>
+    <p class="sub">The live smoke test has caught what mocked tests could not —
+    CORS config and response-mapping issues.</p>
+  </section>
+
+  <!-- 9 · Close -->
+  <section class="slide">
+    <div class="grow"><div>
+      <div class="kicker">Wrap-up</div>
+      <h2>What Week 1 leaves us with</h2>
+      <ul class="bullets" style="max-width:75ch">
+        <li>A working, verified <b>full-stack slice</b> — form to database and back</li>
+        <li>A mini <b>design system</b> ready to grow with self-care-mobile's rules</li>
+        <li><b>Docs &amp; wiki</b> that answer "is this integrated yet?" with evidence</li>
+        <li>Next: bloc-based state as complexity grows, fix the Android build,
+          extend the customer model</li>
+      </ul>
+      <p class="sub" style="margin-top:4vh">Questions?</p>
+    </div></div>
+  </section>
+
+</div>
+<div id="dots"></div>
+<footer><span>Home Debit · Week 1 Flutter Exercise</span><span id="count"></span></footer>
+<div class="hint">← → navigate · F fullscreen</div>
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const dots = document.getElementById('dots');
+  slides.forEach((_, idx) => {
+    const d = document.createElement('span');
+    d.onclick = () => go(idx);
+    dots.appendChild(d);
+  });
+  let i = Math.min(parseInt(location.hash.slice(1)) || 0, slides.length - 1);
+  function go(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
+    [...dots.children].forEach((d, idx) => d.classList.toggle('on', idx === i));
+    document.getElementById('bar').style.width = ((i + 1) / slides.length * 100) + '%';
+    document.getElementById('count').textContent = (i + 1) + ' / ' + slides.length;
+    location.hash = i;
+  }
+  addEventListener('keydown', e => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) go(i + 1);
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) go(i - 1);
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(slides.length - 1);
+    else if (e.key.toLowerCase() === 'f')
+      document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  });
+  let tx = null;
+  addEventListener('touchstart', e => tx = e.touches[0].clientX);
+  addEventListener('touchend', e => {
+    if (tx === null) return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) go(i + (dx < 0 ? 1 : -1));
+    tx = null;
+  });
+  go(i);
+</script>
+</body>
+</html>
