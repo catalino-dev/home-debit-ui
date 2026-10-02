@@ -92,6 +92,70 @@ Do it live, deck stays on slide 5 as the fallback:
 > system that can grow into the self-care-mobile patterns, and documentation
 > that answers 'is this integrated yet' with evidence. Questions?"
 
+## Appendix: explaining each user story (for Q&A / deep dives)
+
+The training brief requires being able to explain *why*, not just show *that*
+it works — US-01 asks you to explain the Widget Tree and state ownership;
+US-02 asks you to explain `BuildContext` in navigation. Use this section if
+a reviewer stops you mid-demo and asks "why did you build it that way?"
+
+### US-01 — Create Customer Registration
+
+> *Business story: As a customer, I want to enter my basic information so
+> that I can create my profile.*
+
+* **Widget tree** (point at `registration_screen.dart` while explaining):
+  `MaterialApp` → `RegistrationScreen` (`Scaffold`) → `Form` → `Column` →
+  three `AppTextField`s → `AppPrimaryButton`. Draw it on a whiteboard if
+  asked — this is the literal nesting in the `build()` method.
+* **Why `StatefulWidget`, not `StatelessWidget`**: the screen owns mutable
+  state that must survive rebuilds — the three `TextEditingController`s, the
+  `_isSubmitting` flag, and whatever validation errors are currently shown.
+  A `StatelessWidget` has no `setState` and can't redraw itself when any of
+  that changes; it would need a parent to own and pass all of this down.
+* **State and `setState`**: pressing **Register** calls
+  `_formKey.currentState!.validate()` first — each `AppTextField`'s
+  validator runs, and if any returns non-null, Flutter shows that message
+  and stops right there (no network call — this is scenarios 2 and 3 in the
+  live demo). On success, `setState(() => _isSubmitting = true)` disables
+  the button and shows a spinner while `CustomerService.register()` is in
+  flight.
+* **Acceptance criteria this demo already proves**: fresh project runs
+  (slide 1 narration), registration screen on startup + input fields accept
+  input + required fields validated (slide 5), successful registration shows
+  the entered customer name via a `SnackBar` before navigating (slide 6).
+
+### US-02 — View Customer Profile
+
+> *Business story: As a customer, I want to view my registered information
+> so that I can verify that my profile is correct.*
+
+* **One logical `Customer` object**: `lib/models/customer.dart` is the
+  single source of truth for customer data moving between screens.
+  `Customer.fromJson` builds an instance from the backend's response
+  (including the server-generated `id` — this is why slide 6 can point at a
+  real database row). The Profile screen never hardcodes a value; every
+  field it shows came from this object.
+* **`BuildContext` in navigation** — this is the one acceptance criterion
+  people most often fumble explaining live, so rehearse it:
+  `Navigator.push(context, ...)` uses `context` to walk *up* the widget tree
+  from `RegistrationScreen`'s position to find the nearest `Navigator`
+  ancestor (the one `MaterialApp` created), then pushes `ProfileScreen` as a
+  new route on top of it, passing the `Customer` returned by the backend.
+  The **Back to Registration** button on Profile calls
+  `Navigator.pop(context)` — same mechanism, same `Navigator`, just removing
+  the top route instead of adding one.
+* **Why `StatelessWidget`**: in the Week 1 implementation, `ProfileScreen`
+  only renders the `Customer` handed to it via a required constructor field
+  — it has no mutable state of its own to manage, so there's nothing a
+  `StatefulWidget` would buy you. (Week 2 changes this once editing is
+  introduced — don't volunteer that unless asked, it's out of scope for
+  this demo.)
+* **Acceptance criteria this demo already proves**: successful registration
+  navigates to Profile + the exact submitted information is displayed
+  (slide 6), and the backend-confirmation JSON on the same slide proves the
+  data passed to Profile is real, not hardcoded.
+
 ## Recovery notes (if something breaks live)
 
 * App won't load → the framed screenshots on slides 5–7 tell the whole
