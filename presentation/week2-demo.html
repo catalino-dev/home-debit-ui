@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home Debit — Week 2 Flutter Exercise</title>
+<style>
+  :root {
+    --red: #d6001c;
+    --red-dark: #a30016;
+    --ink: #1c1f26;
+    --ink-soft: #4b5160;
+    --paper: #ffffff;
+    --mist: #f4f5f7;
+    --line: #e3e5ea;
+    --ok: #0f8a4d;
+    --warn: #b7791f;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: radial-gradient(1200px 700px at 85% -10%, #ffe3e7 0%, transparent 55%),
+                radial-gradient(1000px 600px at -10% 110%, #ffeef0 0%, transparent 50%),
+                var(--mist);
+    color: var(--ink);
+  }
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: 64px 96px 88px;
+  }
+  .slide.active { display: flex; }
+  .kicker {
+    color: var(--red); font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; font-size: 14px; margin-bottom: 14px;
+  }
+  h1 { font-size: 64px; line-height: 1.08; letter-spacing: -0.02em; }
+  h2 { font-size: 42px; letter-spacing: -0.01em; margin-bottom: 28px; }
+  .sub { color: var(--ink-soft); font-size: 22px; margin-top: 20px; max-width: 820px; line-height: 1.5; }
+  .grow { flex: 1; display: flex; align-items: center; }
+  .cols { display: flex; gap: 36px; width: 100%; align-items: stretch; }
+  .card {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 18px;
+    padding: 26px 30px; box-shadow: 0 10px 30px rgba(28,31,38,.06);
+  }
+  .card h3 { font-size: 19px; margin-bottom: 12px; color: var(--red-dark); }
+  .card p, .card li { font-size: 17px; color: var(--ink-soft); line-height: 1.55; }
+  .card ul { padding-left: 20px; }
+  .card li { margin: 6px 0; }
+  code, .mono { font-family: "Cascadia Code", Consolas, monospace; font-size: .93em;
+    background: #f0f1f4; border-radius: 6px; padding: 1px 7px; color: var(--ink); }
+  /* title slide */
+  .title-slide { justify-content: center; }
+  .title-slide .logo {
+    width: 76px; height: 76px; border-radius: 20px; background: var(--red);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 38px; font-weight: 800; margin-bottom: 34px;
+    box-shadow: 0 14px 30px rgba(214,0,28,.35);
+  }
+  .meta { margin-top: 44px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .chip {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 999px;
+    padding: 9px 20px; font-size: 15px; color: var(--ink-soft); font-weight: 600;
+  }
+  .chip b { color: var(--red-dark); }
+  /* architecture */
+  .arch { display: flex; align-items: center; gap: 0; width: 100%; justify-content: center; }
+  .node { text-align: center; }
+  .node .box {
+    background: var(--paper); border: 2px solid var(--line); border-radius: 16px;
+    padding: 26px 34px; min-width: 220px; box-shadow: 0 10px 24px rgba(28,31,38,.07);
+  }
+  .node .box.hot { border-color: var(--red); }
+  .node .t { font-weight: 700; font-size: 20px; }
+  .node .d { color: var(--ink-soft); font-size: 15px; margin-top: 8px; line-height: 1.45; }
+  .arrow { display: flex; flex-direction: column; align-items: center; margin: 0 10px; min-width: 170px; }
+  .arrow .lbl { font-size: 13.5px; color: var(--ink-soft); margin: 4px 0; font-family: Consolas, monospace; }
+  .arrow .shaft { color: var(--red); font-size: 30px; line-height: .8; }
+  /* screenshots */
+  .shots { display: flex; gap: 34px; justify-content: center; align-items: flex-start; width: 100%; }
+  .shot { text-align: center; }
+  .shot img { height: 62vh; border-radius: 18px; filter: drop-shadow(0 18px 30px rgba(28,31,38,.22)); }
+  .shot .cap { margin-top: 16px; font-size: 16px; color: var(--ink-soft); max-width: 340px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+  .shot .cap b { color: var(--ink); }
+  .badge { display: inline-block; border-radius: 999px; padding: 3px 12px; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .badge.ok { background: #e0f3e9; color: var(--ok); }
+  .badge.err { background: #fde3e6; color: var(--red-dark); }
+  /* tables */
+  table { border-collapse: collapse; width: 100%; background: var(--paper); border-radius: 14px; overflow: hidden; box-shadow: 0 10px 24px rgba(28,31,38,.06); }
+  th, td { text-align: left; padding: 13px 20px; font-size: 16.5px; }
+  th { background: var(--ink); color: #fff; font-weight: 600; }
+  td { border-top: 1px solid var(--line); color: var(--ink-soft); }
+  td:first-child { color: var(--ink); font-weight: 600; }
+  .pass { color: var(--ok); font-weight: 700; }
+  /* footer chrome */
+  .chrome {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 54px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; font-size: 13.5px; color: var(--ink-soft); z-index: 5;
+  }
+  .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--red); width: 0; transition: width .25s ease; z-index: 6; }
+  .nav-hint kbd {
+    background: var(--paper); border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 6px; padding: 1px 7px; font-family: inherit; font-size: 12px;
+  }
+  .tree { font-family: Consolas, monospace; font-size: 15px; line-height: 1.7; color: var(--ink-soft); }
+  .tree b { color: var(--ink); }
+  .checklist li { list-style: none; padding-left: 30px; position: relative; margin: 9px 0; }
+  .checklist li::before { content: "✓"; position: absolute; left: 0; color: var(--ok); font-weight: 800; }
+  .checklist li.warn::before { content: "!"; color: var(--warn); }
+
+  pre.code {
+    font-family: "Cascadia Code", Consolas, monospace; font-size: 15px; line-height: 1.6;
+    background: #1c1f26; color: #e6e8ee; border-radius: 12px; padding: 16px 20px; margin-top: 10px;
+    white-space: pre; overflow: hidden;
+  }
+  pre.code .k { color: #ff8a9a; } pre.code .c { color: #8b93a7; } pre.code .s { color: #9fe0b5; }
+  .op { display: grid; grid-template-columns: 78px 1fr; gap: 10px 14px; align-items: baseline; }
+  .op .sym { font-family: Consolas, monospace; font-weight: 800; font-size: 22px; color: var(--red); text-align: center;
+    background: #fff0f2; border-radius: 10px; padding: 4px 0; }
+  .op .txt { font-size: 16.5px; color: var(--ink-soft); line-height: 1.5; }
+  .shot img.sm { height: 56vh; }
+  .own .node .box { min-width: 0; padding: 22px 26px; }
+  .own .arrow { min-width: 0; margin: 0 14px; }
+  .own .arrow .lbl { white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- 1 · Title -->
+<section class="slide title-slide active">
+  <div class="logo">HD</div>
+  <div class="kicker">GMA PH · Flutter Training · Week 2</div>
+  <h1>Home Debit<br>Null safety &amp; state ownership</h1>
+  <p class="sub">Week 1 registered a customer. Week 2 makes one field optional and lets the
+     customer edit their profile — persisted to PostgreSQL, with Cancel that truly
+     discards and Save that truly saves.</p>
+  <div class="meta">
+    <span class="chip"><b>US-03</b> optional nickname</span>
+    <span class="chip"><b>US-04</b> edit profile</span>
+    <span class="chip"><b>Flyway V2</b> · <code>PUT</code> endpoint</span>
+    <span class="chip"><b>Verified</b> 2026-09-30</span>
+  </div>
+</section>
+
+<!-- 2 · The brief -->
+<section class="slide">
+  <div class="kicker">The brief</div>
+  <h2>Two stories, two Dart/Flutter lessons</h2>
+  <div class="grow"><div class="cols">
+    <div class="card" style="flex:1">
+      <h3>US-03 · Optional Customer Information</h3>
+      <ul>
+        <li>Nickname field that is <b>not</b> required</li>
+        <li>Nullable in the model: <code>String? nickname</code></li>
+        <li>Profile shows <b>Not provided</b> when it's null</li>
+        <li>Lesson: <code>String</code> vs <code>String?</code>, <code>?</code>, <code>??</code>, <code>!</code>, <code>late</code></li>
+      </ul>
+    </div>
+    <div class="card" style="flex:1">
+      <h3>US-04 · Edit Customer Profile</h3>
+      <ul>
+        <li>Edit action on Profile, fields pre-filled</li>
+        <li>Edit name, email, mobile, nickname</li>
+        <li><b>Save</b> updates Profile · <b>Cancel</b> discards</li>
+        <li>Lesson: state ownership, Stateless vs Stateful, <code>setState</code>, controllers, navigation</li>
+      </ul>
+    </div>
+    <div class="card" style="flex:1">
+      <h3>End-of-week challenge</h3>
+      <ul>
+        <li>Show a profile with <i>and</i> without nickname</li>
+        <li>Edit and save a profile</li>
+        <li>Explain what happens to <b>unsaved changes</b></li>
+        <li>Beyond the brief: edits persist via <code>PUT</code>, 409 on stolen email</li>
+      </ul>
+    </div>
+  </div></div>
+</section>
+
+<!-- 3 · Null safety -->
+<section class="slide">
+  <div class="kicker">US-03 · Concept</div>
+  <h2>Null safety: say which values may be missing</h2>
+  <div class="grow"><div class="cols">
+    <div class="card" style="flex:1.05">
+      <h3>The model says it, the compiler enforces it</h3>
+<pre class="code"><span class="k">class</span> Customer {
+  <span class="k">final</span> int? id;            <span class="c">// null until the backend saves it</span>
+  <span class="k">final</span> String fullName;     <span class="c">// always present</span>
+  <span class="k">final</span> String email;
+  <span class="k">final</span> String mobileNumber;
+  <span class="k">final</span> String? nickname;   <span class="c">// US-03: optional</span>
+}
+
+<span class="c">// Profile — fallback instead of a crash or "null"</span>
+value: _customer.nickname ?? <span class="s">'Not provided'</span>,</pre>
+      <p style="margin-top:12px">Only genuinely optional data is nullable. The other three
+      stay <code>String</code>, so the compiler stops anyone reading them as maybe-missing.</p>
+    </div>
+    <div class="card" style="flex:1">
+      <h3>The four operators, in this codebase</h3>
+      <div class="op">
+        <div class="sym">?</div><div class="txt"><code>String?</code> — the type admits <code>null</code>. Used for <code>nickname</code> and <code>id</code>.</div>
+        <div class="sym">??</div><div class="txt">"if null, use this" — <code>nickname ?? 'Not provided'</code>, and <code>nickname ?? ''</code> to seed the edit field.</div>
+        <div class="sym">!</div><div class="txt">"trust me, not null" — <code>_formKey.currentState!</code>. Throws if wrong, so used sparingly; we prefer type promotion.</div>
+        <div class="sym">late</div><div class="txt">"assigned before first read" — <code>late Customer _customer</code> set in <code>initState</code>; controllers are <code>late final</code>.</div>
+      </div>
+      <p style="margin-top:14px">Blank input becomes <code>null</code> on both sides
+      (<code>nullIfBlank</code> in Dart, <code>normalizeNickname</code> in Java), so there's one meaning of "no nickname".</p>
+    </div>
+  </div></div>
+</section>
+
+<!-- 4 · State ownership -->
+<section class="slide">
+  <div class="kicker">US-04 · Concept</div>
+  <h2>Who owns the data? Saved vs draft</h2>
+  <div class="grow own"><div style="width:100%">
+    <div class="arch">
+      <div class="node">
+        <div class="box hot">
+          <div class="t">ProfileScreen</div>
+          <div class="d"><b>StatefulWidget</b> <i>(was Stateless)</i><br>owns the <b>saved</b> customer<br><code>late Customer _customer</code></div>
+        </div>
+      </div>
+      <div class="arrow">
+        <div class="lbl">push&lt;Customer&gt;(current)</div>
+        <div class="shaft">⟶</div>
+        <div class="shaft">⟵</div>
+        <div class="lbl">pop(saved) · Cancel: pop()</div>
+      </div>
+      <div class="node">
+        <div class="box hot">
+          <div class="t">EditProfileScreen</div>
+          <div class="d"><b>StatefulWidget</b><br>owns the <b>draft</b>: 4 × <code>TextEditingController</code><br><code>_isSaving</code> · <code>_errorMessage</code></div>
+        </div>
+      </div>
+      <div class="arrow">
+        <div class="lbl">PUT /api/customers/{id}</div>
+        <div class="shaft">⟶</div>
+        <div class="lbl">200 · 400 · 404 · 409</div>
+      </div>
+      <div class="node">
+        <div class="box">
+          <div class="t">Spring Boot + PostgreSQL</div>
+          <div class="d">validates, persists<br>Flyway <code>V2</code>: <code>nickname VARCHAR(50)</code></div>
+        </div>
+      </div>
+    </div>
+    <div class="cols" style="margin-top:34px">
+      <div class="card" style="flex:1"><h3>setState</h3><p>Only the owner calls it: Profile after a successful edit, Edit for loading/error. Typed text needs no <code>setState</code> — the controller notifies its field.</p></div>
+      <div class="card" style="flex:1"><h3>TextEditingController</h3><p>Created once in <code>initState</code> from the current values, disposed in <code>dispose()</code>. Creating it in <code>build</code> would wipe the user's typing.</p></div>
+      <div class="card" style="flex:1"><h3>Navigation as a result</h3><p><code>Navigator.push&lt;Customer&gt;</code> returns <code>Customer?</code> — null safety forces Profile to handle "no result" (Cancel).</p></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 5 · Demo US-03 -->
+<section class="slide">
+  <div class="kicker">Live demo · 1 of 4 · US-03</div>
+  <h2>Nickname optional — with and without</h2>
+  <div class="grow"><div class="shots">
+    <div class="shot">
+      <span class="badge ok">optional field</span>
+      <div><img class="sm" src="../docs/screenshots/01-week2-registration-optional-nickname.png" alt="Registration with empty optional nickname"></div>
+      <div class="cap"><b>Left empty on purpose.</b> Registration still succeeds — no validator demands it.</div>
+    </div>
+    <div class="shot">
+      <span class="badge ok">nickname = null</span>
+      <div><img class="sm" src="../docs/screenshots/02-week2-profile-nickname-not-provided.png" alt="Profile with Nickname Not provided"></div>
+      <div class="cap"><b><code>??</code> in action.</b> Backend returned <code>"nickname": null</code>; Profile shows <b>Not provided</b>.</div>
+    </div>
+    <div class="shot">
+      <span class="badge ok">nickname = "Annie"</span>
+      <div><img class="sm" src="../docs/screenshots/09-week2-profile-with-nickname.png" alt="Profile with Nickname Annie"></div>
+      <div class="cap"><b>Present value wins.</b> Same screen, same code path — the fallback simply isn't used.</div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 6 · Demo Save -->
+<section class="slide">
+  <div class="kicker">Live demo · 2 of 4 · US-04</div>
+  <h2>Edit → Save → Profile shows the saved values</h2>
+  <div class="grow"><div class="shots">
+    <div class="shot">
+      <span class="badge ok">pre-filled</span>
+      <div><img class="sm" src="../docs/screenshots/03-week2-edit-profile-prefilled.png" alt="Edit Profile prefilled"></div>
+      <div class="cap"><b>Controllers seeded in <code>initState</code></b> — null nickname becomes an empty field.</div>
+    </div>
+    <div class="shot">
+      <span class="badge ok">HTTP 200</span>
+      <div><img class="sm" src="../docs/screenshots/06-week2-save-profile-updated.png" alt="Profile updated after save"></div>
+      <div class="cap"><b>PUT persisted, then <code>pop(saved)</code>.</b> Profile calls <code>setState</code> with the server's answer.</div>
+    </div>
+    <div class="card" style="align-self:center; max-width: 470px;">
+      <h3>Backend confirmation (id = 17)</h3>
+      <p style="font-family:Consolas,monospace; font-size:14.5px; line-height:1.7; background:#f0f1f4; border-radius:10px; padding:14px 16px; color:var(--ink)">
+{ "id": 17,<br>
+&nbsp;&nbsp;"fullName": "Juan Dela Cruz",<br>
+&nbsp;&nbsp;"mobileNumber": "09179998888",<br>
+&nbsp;&nbsp;"nickname": "Juanito" }
+      </p>
+      <p style="margin-top:12px">Same row, same ID — an update, not a new registration.
+      The Profile shows what the <b>server</b> saved, not what was typed.</p>
+    </div>
+  </div></div>
+</section>
+
+<!-- 7 · Demo Cancel -->
+<section class="slide">
+  <div class="kicker">Live demo · 3 of 4 · the challenge question</div>
+  <h2>What happens to unsaved changes?</h2>
+  <div class="grow"><div class="shots">
+    <div class="shot">
+      <span class="badge err">draft</span>
+      <div><img class="sm" src="../docs/screenshots/04-week2-edit-profile-unsaved-draft.png" alt="Unsaved draft in Edit Profile"></div>
+      <div class="cap"><b>"Juan Draft" / "Unsaved"</b> exist only inside Edit's controllers.</div>
+    </div>
+    <div class="shot">
+      <span class="badge ok">Cancel</span>
+      <div><img class="sm" src="../docs/screenshots/05-week2-cancel-profile-unchanged.png" alt="Profile unchanged after cancel"></div>
+      <div class="cap"><b>Profile unchanged.</b> No request was sent; DB row untouched.</div>
+    </div>
+    <div class="card" style="align-self:center; max-width: 470px;">
+      <h3>They're gone — by design</h3>
+      <ul>
+        <li>Cancel (or back) → <code>Navigator.pop(context)</code> with <b>no result</b></li>
+        <li>Edit's <code>State</code> is disposed → controllers disposed → draft discarded</li>
+        <li>Profile gets <code>null</code>, returns early, keeps <code>_customer</code></li>
+        <li>Re-opening Edit starts again from the <b>saved</b> profile</li>
+      </ul>
+      <p style="margin-top:10px">Because the draft and the saved data live in <b>different owners</b>, discarding one can't corrupt the other.</p>
+    </div>
+  </div></div>
+</section>
+
+<!-- 8 · Demo failure -->
+<section class="slide">
+  <div class="kicker">Live demo · 4 of 4 · failure path</div>
+  <h2>Save fails? Stay on Edit, keep the draft</h2>
+  <div class="grow"><div class="shots">
+    <div class="shot">
+      <span class="badge err">HTTP 409</span>
+      <div><img class="sm" src="../docs/screenshots/07-week2-edit-duplicate-email-error.png" alt="Duplicate email error on Edit Profile"></div>
+      <div class="cap"><b>Email belongs to another customer.</b> Error shown on Edit; nothing on Profile changes.</div>
+    </div>
+    <div class="card" style="align-self:center; max-width: 560px;">
+      <h3>Rules the backend enforces</h3>
+      <ul>
+        <li>Keeping <i>your own</i> email → <code>200</code>, not a conflict</li>
+        <li>Another customer's email → <code>409</code>, record unchanged</li>
+        <li>Invalid fields → <code>400</code> · unknown ID → <code>404</code> ("register again")</li>
+      </ul>
+      <h3 style="margin-top:18px">Found in code review, fixed</h3>
+      <p>Back during an in-flight Save could pop with <code>null</code> while the PUT still
+      committed → stale Profile, and the next Save would silently revert it.
+      Fix: <code>PopScope(canPop: !_isSaving)</code> + hidden back arrow — with a regression test.</p>
+    </div>
+  </div></div>
+</section>
+
+<!-- 9 · Evidence -->
+<section class="slide">
+  <div class="kicker">Evidence</div>
+  <h2>Every layer verified, independently and together</h2>
+  <div class="grow" style="align-items:flex-start; padding-top: 8px;">
+    <table>
+      <tr><th>Layer</th><th>Check</th><th>Result</th></tr>
+      <tr><td>Flutter static analysis</td><td><code>flutter analyze</code></td><td class="pass">PASS — no issues</td></tr>
+      <tr><td>Flutter unit &amp; widget tests</td><td><code>flutter test</code> — model, service (POST + PUT), US-03 ×3, US-04 ×8, Week 1 regressions</td><td class="pass">PASS — 36 / 36</td></tr>
+      <tr><td>Backend integration tests</td><td><code>gradlew test</code> — Testcontainers PostgreSQL, nickname, PUT 200/400/404/409, PUT preflight</td><td class="pass">PASS — 18 / 18</td></tr>
+      <tr><td>Schema</td><td>Flyway <code>V2__add_customer_nickname.sql</code> applied to the running DB</td><td class="pass">PASS</td></tr>
+      <tr><td>Live smoke test</td><td>Browser → API → DB: nickname absent/present, Cancel, Save, 409 — DB rows checked</td><td class="pass">PASS — 9 screenshots</td></tr>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:0">Week 1 tests still pass unchanged — the new field and screen didn't break registration.</p>
+</section>
+
+<!-- 10 · Status & next -->
+<section class="slide">
+  <div class="kicker">Where we are</div>
+  <h2>Status &amp; what's next</h2>
+  <div class="grow"><div class="cols">
+    <div class="card" style="flex:1">
+      <h3>Done</h3>
+      <ul class="checklist">
+        <li>US-03: optional nickname end-to-end, <b>Not provided</b> fallback</li>
+        <li>US-04: Edit / Save (PUT) / Cancel with state in the right owners</li>
+        <li>Shared validators + <code>AppSecondaryButton</code>, <code>AppErrorMessage</code></li>
+        <li>Wiki: Week 2 guides, exercise evidence, API &amp; testing updates</li>
+      </ul>
+    </div>
+    <div class="card" style="flex:1">
+      <h3>Known limitations</h3>
+      <ul class="checklist">
+        <li class="warn">Android APK build still fails at Gradle config — web is the verified target</li>
+        <li class="warn">Profile renders the last register/update response; no re-fetch on open</li>
+        <li class="warn">Week 1 &amp; 2 branches not yet merged to <code>main</code></li>
+      </ul>
+    </div>
+    <div class="card" style="flex:1">
+      <h3>Week 3 candidates</h3>
+      <ul>
+        <li>"Discard changes?" prompt when leaving a dirty form</li>
+        <li>Lift state into a Bloc/Provider once screens share it</li>
+        <li>Fetch profile by ID on open</li>
+        <li>Fix the Android build → run on a device</li>
+      </ul>
+    </div>
+  </div></div>
+</section>
+
+<!-- 11 · Close -->
+<section class="slide title-slide">
+  <div class="logo">HD</div>
+  <div class="kicker">Thank you</div>
+  <h1>Questions?</h1>
+  <p class="sub">Everything shown is reproducible: the wiki's <b>Local Development</b> page
+     starts the stack, and <b>Week 2 Exercise</b> documents every scenario with backend confirmation.</p>
+  <div class="meta">
+    <span class="chip"><b>Wiki</b> github.com/catalino-dev/home-debit-ui/wiki/Week-2-Overview</span>
+    <span class="chip"><b>Branch</b> feature/week-2-nickname-and-edit-profile</span>
+  </div>
+</section>
+
+<div class="chrome">
+  <span>Home Debit · Week 2 Flutter Exercise</span>
+  <span class="nav-hint"><kbd>←</kbd> <kbd>→</kbd> or click to navigate</span>
+  <span id="counter"></span>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  let i = 0;
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    document.getElementById('counter').textContent = (i + 1) + ' / ' + slides.length;
+    document.getElementById('progress').style.width = ((i + 1) / slides.length * 100) + '%';
+  }
+  addEventListener('keydown', e => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) show(i + 1);
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) show(i - 1);
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+  });
+  addEventListener('click', e => {
+    if (e.clientX > innerWidth * 0.66) show(i + 1);
+    else if (e.clientX < innerWidth * 0.15) show(i - 1);
+  });
+  show(0);
+</script>
+</body>
+</html>
