@@ -38,7 +38,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _mobileController;
   late final TextEditingController _nicknameController;
 
-  late final _customerService = widget.customerService ?? CustomerService();
+  // `late`: needs `widget`, which is only available once the State is
+  // attached, and should be created once on first use.
+  late CustomerService _customerService;
 
   bool _isSaving = false;
   String? _errorMessage;
@@ -46,11 +48,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _customerService = widget.customerService ?? CustomerService();
     final customer = widget.customer;
     _nameController = TextEditingController(text: customer.fullName);
     _emailController = TextEditingController(text: customer.email);
     _mobileController = TextEditingController(text: customer.mobileNumber);
     _nicknameController = TextEditingController(text: customer.nickname ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant EditProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.customerService != oldWidget.customerService) {
+      _customerService = widget.customerService ?? CustomerService();
+    }
   }
 
   @override
@@ -90,6 +101,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _isSaving = false;
         _errorMessage = exception.message;
       });
+    } catch (_) {
+      // Fallback for uncaught exceptions so the loading state always clears.
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _errorMessage = 'An unexpected error occurred. Please try again.';
+      });
     }
   }
 
@@ -107,62 +125,60 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           title: const Text('Edit Profile'),
           automaticallyImplyLeading: !_isSaving,
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.normal),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Update your details, then save',
-                  style: AppTextStyles.body1,
-                ),
-                const SizedBox(height: AppSpacing.large),
-                AppTextField(
-                  controller: _nameController,
-                  label: 'Full Name',
-                  validator: CustomerValidators.fullName,
-                ),
-                const SizedBox(height: AppSpacing.normal),
-                AppTextField(
-                  controller: _emailController,
-                  label: 'Email',
-                  keyboardType: TextInputType.emailAddress,
-                  validator: CustomerValidators.email,
-                ),
-                const SizedBox(height: AppSpacing.normal),
-                AppTextField(
-                  controller: _mobileController,
-                  label: 'Mobile Number',
-                  keyboardType: TextInputType.phone,
-                  validator: CustomerValidators.mobileNumber,
-                ),
-                const SizedBox(height: AppSpacing.normal),
-                AppTextField(
-                  controller: _nicknameController,
-                  label: 'Nickname (optional)',
-                  validator: CustomerValidators.nickname,
-                ),
-                const SizedBox(height: AppSpacing.large),
-                if (errorMessage != null) ...[
-                  AppErrorMessage(
-                    key: const ValueKey('edit-profile-error'),
-                    message: errorMessage,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.normal),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: AppSpacing.normal,
+                children: [
+                  const Text(
+                    'Update your details, then save',
+                    style: AppTextStyles.body1,
                   ),
-                  const SizedBox(height: AppSpacing.normal),
+                  const SizedBox(height: AppSpacing.small),
+                  AppTextField(
+                    controller: _nameController,
+                    label: 'Full Name',
+                    validator: CustomerValidators.fullName,
+                  ),
+                  AppTextField(
+                    controller: _emailController,
+                    label: 'Email',
+                    keyboardType: TextInputType.emailAddress,
+                    validator: CustomerValidators.email,
+                  ),
+                  AppTextField(
+                    controller: _mobileController,
+                    label: 'Mobile Number',
+                    keyboardType: TextInputType.phone,
+                    validator: CustomerValidators.mobileNumber,
+                  ),
+                  AppTextField(
+                    controller: _nicknameController,
+                    label: 'Nickname (optional)',
+                    validator: CustomerValidators.nickname,
+                  ),
+                  const SizedBox(height: AppSpacing.small),
+                  if (errorMessage != null) ...[
+                    AppErrorMessage(
+                      key: const ValueKey('edit-profile-error'),
+                      message: errorMessage,
+                    ),
+                  ],
+                  AppPrimaryButton(
+                    label: 'Save',
+                    isLoading: _isSaving,
+                    onPressed: _handleSave,
+                  ),
+                  AppSecondaryButton(
+                    label: 'Cancel',
+                    onPressed: _isSaving ? null : _handleCancel,
+                  ),
                 ],
-                AppPrimaryButton(
-                  label: 'Save',
-                  isLoading: _isSaving,
-                  onPressed: _handleSave,
-                ),
-                const SizedBox(height: AppSpacing.normal),
-                AppSecondaryButton(
-                  label: 'Cancel',
-                  onPressed: _isSaving ? null : _handleCancel,
-                ),
-              ],
+              ),
             ),
           ),
         ),

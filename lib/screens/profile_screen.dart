@@ -36,7 +36,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _customer = widget.customer;
   }
-
   Future<void> _openEditProfile() async {
     // Don't let e.g. "Registration successful" cover the Edit form's buttons.
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -61,43 +60,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Customer Profile')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.normal),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppLabelValue(label: 'Full Name', value: _customer.fullName),
-                  const SizedBox(height: AppSpacing.normal),
-                  AppLabelValue(label: 'Email', value: _customer.email),
-                  const SizedBox(height: AppSpacing.normal),
-                  AppLabelValue(
-                    label: 'Mobile Number',
-                    value: _customer.mobileNumber,
-                  ),
-                  const SizedBox(height: AppSpacing.normal),
-                  AppLabelValue(
-                    label: 'Nickname',
-                    // US-03: `??` supplies the fallback when nickname is null.
-                    value: _customer.nickname ?? _notProvided,
-                  ),
-                ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.normal),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: AppSpacing.large,
+            children: [
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: AppSpacing.normal,
+                  children: [
+                    AppLabelValue(
+                      label: 'Full Name',
+                      value: _customer.fullName,
+                    ),
+                    AppLabelValue(label: 'Email', value: _customer.email),
+                    AppLabelValue(
+                      label: 'Mobile Number',
+                      value: _customer.mobileNumber,
+                    ),
+                    AppLabelValue(
+                      label: 'Nickname',
+                      // US-03: `??` supplies the fallback when nickname is null.
+                      value: _customer.nickname ?? _notProvided,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.large),
-            AppPrimaryButton(
-              label: 'Edit Profile',
-              onPressed: _openEditProfile,
-            ),
-            const SizedBox(height: AppSpacing.normal),
-            AppSecondaryButton(
-              label: 'Back to Registration',
-              onPressed: () => Navigator.pop(context),
-            ),
-          ],
+              AppPrimaryButton(
+                label: 'Edit Profile',
+                onPressed: _openEditProfile,
+              ),
+              AppSecondaryButton(
+                label: 'Back to Registration',
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
         ),
       ),
     );

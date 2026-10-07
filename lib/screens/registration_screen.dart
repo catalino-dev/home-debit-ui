@@ -30,10 +30,24 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   // `late`: needs `widget`, which is only available once the State is
   // attached, and should be created once on first use.
-  late final _customerService = widget.customerService ?? CustomerService();
+  late CustomerService _customerService;
 
   bool _isSubmitting = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _customerService = widget.customerService ?? CustomerService();
+  }
+
+  @override
+  void didUpdateWidget(covariant RegistrationScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.customerService != oldWidget.customerService) {
+      _customerService = widget.customerService ?? CustomerService();
+    }
+  }
 
   @override
   void dispose() {
@@ -89,6 +103,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         _isSubmitting = false;
         _errorMessage = exception.message;
       });
+    } catch (_) {
+      // Fallback for uncaught exceptions so the loading state always clears.
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _errorMessage = 'An unexpected error occurred. Please try again.';
+      });
     }
   }
 
@@ -99,57 +120,56 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Customer Registration')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.normal),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Enter your details to create your profile',
-                style: AppTextStyles.body1,
-              ),
-              const SizedBox(height: AppSpacing.large),
-              AppTextField(
-                controller: _nameController,
-                label: 'Full Name',
-                validator: CustomerValidators.fullName,
-              ),
-              const SizedBox(height: AppSpacing.normal),
-              AppTextField(
-                controller: _emailController,
-                label: 'Email',
-                keyboardType: TextInputType.emailAddress,
-                validator: CustomerValidators.email,
-              ),
-              const SizedBox(height: AppSpacing.normal),
-              AppTextField(
-                controller: _mobileController,
-                label: 'Mobile Number',
-                keyboardType: TextInputType.phone,
-                validator: CustomerValidators.mobileNumber,
-              ),
-              const SizedBox(height: AppSpacing.normal),
-              AppTextField(
-                controller: _nicknameController,
-                label: 'Nickname (optional)',
-                validator: CustomerValidators.nickname,
-              ),
-              const SizedBox(height: AppSpacing.large),
-              if (errorMessage != null) ...[
-                AppErrorMessage(
-                  key: const ValueKey('registration-error'),
-                  message: errorMessage,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.normal),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: AppSpacing.normal,
+              children: [
+                const Text(
+                  'Enter your details to create your profile',
+                  style: AppTextStyles.body1,
                 ),
-                const SizedBox(height: AppSpacing.normal),
+                const SizedBox(height: AppSpacing.small),
+                AppTextField(
+                  controller: _nameController,
+                  label: 'Full Name',
+                  validator: CustomerValidators.fullName,
+                ),
+                AppTextField(
+                  controller: _emailController,
+                  label: 'Email',
+                  keyboardType: TextInputType.emailAddress,
+                  validator: CustomerValidators.email,
+                ),
+                AppTextField(
+                  controller: _mobileController,
+                  label: 'Mobile Number',
+                  keyboardType: TextInputType.phone,
+                  validator: CustomerValidators.mobileNumber,
+                ),
+                AppTextField(
+                  controller: _nicknameController,
+                  label: 'Nickname (optional)',
+                  validator: CustomerValidators.nickname,
+                ),
+                const SizedBox(height: AppSpacing.small),
+                if (errorMessage != null) ...[
+                  AppErrorMessage(
+                    key: const ValueKey('registration-error'),
+                    message: errorMessage,
+                  ),
+                ],
+                AppPrimaryButton(
+                  label: 'Register',
+                  isLoading: _isSubmitting,
+                  onPressed: _handleRegister,
+                ),
               ],
-              AppPrimaryButton(
-                label: 'Register',
-                isLoading: _isSubmitting,
-                onPressed: _handleRegister,
-              ),
-            ],
+            ),
           ),
         ),
       ),
