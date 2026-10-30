@@ -1,5 +1,19 @@
 # Documentation Update Log
 
+## 2026-10-30 (Week 3)
+* **US-05 async profile loading**: `CustomerProfileService`
+  (`Future<Customer> loadProfile(id)`); default `FakeCustomerProfileService`
+  (in-memory, 2 s delay, fed by `CustomerService.savedCustomers`);
+  `CustomerService.loadProfile` (`GET`) opt-in via `USE_BACKEND_PROFILE`; the
+  Profile now loads by id with a loading state; `MyApp` is the composition root.
+* **US-06 load errors**: `try`/`catch`/`finally` in `_loadProfile`,
+  `AppErrorView` with Retry, debug-only *Simulate profile load failure* switch
+  (fails exactly one load).
+* **Docs**: added `week-3/` (US-05, US-06 guides), `week-3-exercise-results.md`
+  with seven live screenshots (`id=21..22`, stamp `202610301525`), and
+  `presentation/week3-demo-script.md`; updated frontend architecture, local
+  development, and test evidence (Flutter 54 tests).
+
 ## 2026-09-30 (Week 2)
 * **US-03 optional nickname**: Flyway `V2__add_customer_nickname.sql`
   (nullable `VARCHAR(50)`); `nickname` on the register/update requests and the
