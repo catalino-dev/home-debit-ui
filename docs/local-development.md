@@ -72,6 +72,15 @@ allows cleartext HTTP for local development; production deployments should use
 HTTPS. Physical iOS devices may require an HTTPS endpoint or an explicit
 development-only App Transport Security exception.
 
+### Profile source (Week 3)
+
+By default the Profile loads the customer from the in-memory
+`FakeCustomerProfileService` (2 s simulated delay) so the loading and error
+states can be demonstrated; debug builds show a **Simulate profile load
+failure** switch on Registration that fails the next load once. Add
+`--dart-define=USE_BACKEND_PROFILE=true` to load through
+`GET /api/customers/{id}` instead (the switch is then hidden).
+
 For a different web development port or host, the backend's
 `home-debit.cors.allowed-origin-patterns` setting can be overridden in the
 usual Spring configuration to include that origin. The default permits

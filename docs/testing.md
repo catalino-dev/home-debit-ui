@@ -4,7 +4,7 @@ title: Test evidence and scenarios
 description: Records automated verification and repeatable test scenarios for Flutter registration, optional nickname, profile editing, and Spring Boot persistence.
 resource: workspace:home-debit-ui-and-home-debit/tests
 tags: [home-debit, testing, flutter, spring-boot, postgresql]
-timestamp: 2026-09-30T17:30:00+08:00
+timestamp: 2026-10-30T15:30:00+08:00
 okf_version: "0.1"
 source: ../test/widget_test.dart
 ---
@@ -19,7 +19,7 @@ separate browser smoke test exercised the running UI, backend, and PostgreSQL.
 | Project | Command | Result | Coverage |
 |---|---|---|---|
 | Flutter UI | `flutter analyze` | **PASS** — no issues found. | Static analysis of app and tests. |
-| Flutter UI | `flutter test` | **PASS** — all 36 tests passed (Week 2). | HTTP contract (register + update), model/utility behavior, form validation, navigation, optional nickname, Edit/Save/Cancel, and visible API/network failures. |
+| Flutter UI | `flutter test` | **PASS** — all 54 tests passed (Week 3). | HTTP contract (register, update, `loadProfile`), `savedCustomers` stream, fake profile service, model/utility behavior, form validation, navigation, optional nickname, Edit/Save/Cancel, async profile loading, load errors with Retry, and visible API/network failures. |
 | Spring Boot backend | `.\gradlew.bat test` from `home-debit`, with JDK 25 | **PASS** — `BUILD SUCCESSFUL`; 18 tests, 0 failures (Week 2). | Controller integration tests using PostgreSQL Testcontainers: validation, nickname, persistence/readback, update, duplicate email, not-found, and CORS (incl. `PUT`). |
 | Flutter Web | `flutter build web --release --dart-define=API_BASE_URL=http://localhost:8080` | **PASS**. | Release web build configured for the local API. |
 
@@ -75,6 +75,26 @@ Tests: `test/profile_edit_test.dart`.
 | US-04 | Save fails with `409`. | Error shown on Edit; stays on Edit; profile unchanged after Cancel. |
 | US-04 | Back pressed while Save is in progress. | Back is blocked (`PopScope`); the saved result still reaches the profile. |
 
+## Week 3 scenarios
+
+Tests: `test/fake_customer_profile_service_test.dart`,
+`test/customer_service_test.dart` (`loadProfile`, `savedCustomers`), and
+`test/profile_loading_test.dart`.
+
+| Story | Scenario | Expected result |
+|---|---|---|
+| US-05 | Fake `loadProfile` before / after the delay. | Not completed before the delay; completes with the customer after it. |
+| US-05 | Customer arrives via `savedCustomers` or `save`; saved again after an edit. | Fake returns it; returns the latest version. |
+| US-05 | `CustomerService.loadProfile` 200 / 404 / 500 / network. | `Customer` / profile-missing / retryable / backend-not-running messages. |
+| US-05 | `savedCustomers` on register + update; on a rejected save. | Emits both confirmed customers; emits nothing for a `409`. |
+| US-05 | Open Profile with a pending `Future`. | Spinner + *Loading your profile...*; customer shown after completion. |
+| US-05 | Tap Back while loading. | Navigates back; no crash. |
+| US-06 | Load throws `CustomerServiceException`. | Message + Retry; loading cleared; no exception escapes. |
+| US-06 | Retry then success / Retry then failure. | Loading → customer / the new error with Retry. |
+| US-06 | Load throws an unexpected `StateError`. | Generic message; internal text not shown. |
+| US-06 | Fake `failNextLoad`. | Exactly one load fails, then the flag resets. |
+| US-05/06 | End to end through `MyApp` with the debug switch. | Register → loading → error → Retry → customer. |
+
 ## Backend integration scenarios
 
 Tests:
@@ -127,6 +147,17 @@ added the nullable `nickname` column. Screenshots are in
 | 4 | Edited email to another customer's email and saved. | **HTTP 409**; error shown on Edit; DB unchanged. |
 | 5 | Registered a customer with a nickname. | Profile shows the nickname; DB stores it. |
 
+### Week 3 live smoke
+
+**Result: PASS** (2026-10-30). Screenshots are in
+[Week 3 exercise results](./week-3-exercise-results.md).
+
+| Step | Action | Observed result |
+|---|---|---|
+| 1 | Registered a customer with the failure switch off. | `POST` **201** (`id=21`); Profile showed the loading state, then the customer. |
+| 2 | Turned the switch on and registered a second customer. | `POST` **201** (`id=22`); Profile showed the load error and Retry. |
+| 3 | Selected Retry. | Loading again, then the customer; DB rows match. |
+
 The smoke-test customers used synthetic example data and remains in the local
 development database until that record or database volume is removed.
 
@@ -142,6 +173,7 @@ Android APK output is not.
 * [Flutter HTTP service tests](../test/customer_service_test.dart)
 * [Flutter widget tests](../test/widget_test.dart)
 * [Week 2 widget tests](../test/profile_edit_test.dart)
+* [Week 3 profile loading tests](../test/profile_loading_test.dart)
 * [Backend controller integration tests](../../home-debit/src/test/java/ph/hcph/homedebit/customer/CustomerControllerTests.java)
 * [Customer API](./backend/customer-api.md)
 * [Local development](./local-development.md)

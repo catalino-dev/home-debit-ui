@@ -12,12 +12,16 @@ code references describe what is currently implemented.
 * [Test evidence and scenarios](./testing.md) — automated results, test cases, and live integration smoke checks
 * [Exercise results — screenshots and scenarios](./exercise-results.md) — visual walkthrough of US-01/US-02 against the live app
 * [Week 2 exercise results](./week-2-exercise-results.md) — visual walkthrough of US-03/US-04 (optional nickname, edit profile) against the live app
+* [Week 3 exercise results](./week-3-exercise-results.md) — visual walkthrough of US-05/US-06 (async profile loading, load errors with Retry) against the live app
 
 ## Week 1 exercises
 * [Week 1 index](./week-1/index.md) — exercise guides and concept explanations
 
 ## Week 2 exercises
 * [Week 2 index](./week-2/index.md) — null safety (US-03) and state ownership / editing (US-04)
+
+## Week 3 exercises
+* [Week 3 index](./week-3/index.md) — asynchronous loading with `Future`/`async`/`await` (US-05) and error handling with `try`/`catch`/`finally` and Retry (US-06)
 
 ## Frontend
 * [Frontend index](./frontend/index.md) — UI architecture, state, forms, and service boundary
@@ -32,3 +36,7 @@ registration endpoint. Successful responses include the database-generated ID;
 duplicate email, backend validation, and network failures remain visible on the
 registration form. Since Week 2 the customer has an optional `nickname`, and
 the profile can be edited and saved through `PUT /api/customers/{id}`.
+Since Week 3 the Profile receives only the customer id and loads the customer
+asynchronously through `CustomerProfileService` — by default an in-memory fake
+with a 2 s delay and a debug-only failure switch; the real
+`GET /api/customers/{id}` is opt-in via `--dart-define=USE_BACKEND_PROFILE=true`.
