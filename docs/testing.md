@@ -4,7 +4,7 @@ title: Test evidence and scenarios
 description: Records automated verification and repeatable test scenarios for Flutter registration, optional nickname, profile editing, and Spring Boot persistence.
 resource: workspace:home-debit-ui-and-home-debit/tests
 tags: [home-debit, testing, flutter, spring-boot, postgresql]
-timestamp: 2026-10-30T15:30:00+08:00
+timestamp: 2026-10-30T16:00:00+08:00
 okf_version: "0.1"
 source: ../test/widget_test.dart
 ---
@@ -19,7 +19,7 @@ separate browser smoke test exercised the running UI, backend, and PostgreSQL.
 | Project | Command | Result | Coverage |
 |---|---|---|---|
 | Flutter UI | `flutter analyze` | **PASS** — no issues found. | Static analysis of app and tests. |
-| Flutter UI | `flutter test` | **PASS** — all 54 tests passed (Week 3). | HTTP contract (register, update, `loadProfile`), `savedCustomers` stream, fake profile service, model/utility behavior, form validation, navigation, optional nickname, Edit/Save/Cancel, async profile loading, load errors with Retry, and visible API/network failures. |
+| Flutter UI | `flutter test` | **PASS** — all 74 tests passed (Week 4). | HTTP contract (register, update, `loadProfile`), `savedCustomers` stream, fake profile and account-status services, BLoC event → state flows, `intl` formatting, model/utility behavior, form validation, navigation, optional nickname, Edit/Save/Cancel, async profile loading, load errors with Retry, live account status, and visible API/network failures. |
 | Spring Boot backend | `.\gradlew.bat test` from `home-debit`, with JDK 25 | **PASS** — `BUILD SUCCESSFUL`; 18 tests, 0 failures (Week 2). | Controller integration tests using PostgreSQL Testcontainers: validation, nickname, persistence/readback, update, duplicate email, not-found, and CORS (incl. `PUT`). |
 | Flutter Web | `flutter build web --release --dart-define=API_BASE_URL=http://localhost:8080` | **PASS**. | Release web build configured for the local API. |
 
@@ -95,6 +95,27 @@ Tests: `test/fake_customer_profile_service_test.dart`,
 | US-06 | Fake `failNextLoad`. | Exactly one load fails, then the flag resets. |
 | US-05/06 | End to end through `MyApp` with the debug switch. | Register → loading → error → Retry → customer. |
 
+## Week 4 scenarios
+
+Tests: `test/blocs/customer_profile_bloc_test.dart`,
+`test/blocs/account_status_bloc_test.dart`,
+`test/fake_account_status_service_test.dart`,
+`test/date_time_extension_test.dart`, and `test/dashboard_test.dart`.
+
+| Story | Scenario | Expected result |
+|---|---|---|
+| US-10 | `CustomerProfileRequested` with success / service failure / unexpected error. | `Loaded(customer)` / `LoadFailure(message)` / generic `LoadFailure`. |
+| US-10 | `CustomerProfileRetryRequested` after a failure; when not failed. | `Loading` → `Loaded`; ignored (no service call). |
+| US-10 | `CustomerProfileUpdated`. | `Loaded(updated)` with no reload. |
+| US-07 | Status stream emits synchronizing, synchronized, synchronizing. | One `Updated` per value; last sync time kept while re-syncing. |
+| US-07 | Status stream error; bloc closed. | `Unavailable`; subscription cancelled. |
+| US-07 | Fake status service over time; after cancel. | Alternating values; no more values after cancel. |
+| US-08 | `syncTimestamp` for PM / AM times. | `30 Oct 2026, 2:31:05 PM` / `2 Jan 2026, 9:05:00 AM`. |
+| US-07 | Dashboard with the fake stream. | Card changes automatically; *Last synchronized* formatted; no refresh control. |
+| US-10 | Dashboard with nickname. | `Welcome, <nickname>`; status independent of profile loading. |
+| US-07 | Status stream error on the dashboard. | *Status unavailable*; profile still shown. |
+| US-07 | Leave the dashboard. | Status subscription cancelled. |
+
 ## Backend integration scenarios
 
 Tests:
@@ -158,6 +179,18 @@ added the nullable `nickname` column. Screenshots are in
 | 2 | Turned the switch on and registered a second customer. | `POST` **201** (`id=22`); Profile showed the load error and Retry. |
 | 3 | Selected Retry. | Loading again, then the customer; DB rows match. |
 
+### Week 4 live smoke
+
+**Result: PASS** (2026-10-30). Screenshots are in
+[Week 4 exercise results](./week-4-exercise-results.md).
+
+| Step | Action | Observed result |
+|---|---|---|
+| 1 | Registered a customer with a nickname. | `POST` **201** (`id=24`); status streaming while the profile loaded; then *Synchronized* with a formatted time and `Welcome, Annie`. |
+| 2 | Waited without interacting. | Status changed to *Synchronizing...* automatically. |
+| 3 | Failure switch on; registered another customer; Retry. | `POST` **201** (`id=25`); error + Retry; then the profile. |
+| 4 | Edit Profile → nickname → Save. | `PUT /api/customers/25` **200**; `Welcome, Juanito`; DB row updated. |
+
 The smoke-test customers used synthetic example data and remains in the local
 development database until that record or database volume is removed.
 
@@ -174,6 +207,7 @@ Android APK output is not.
 * [Flutter widget tests](../test/widget_test.dart)
 * [Week 2 widget tests](../test/profile_edit_test.dart)
 * [Week 3 profile loading tests](../test/profile_loading_test.dart)
+* [Week 4 dashboard tests](../test/dashboard_test.dart)
 * [Backend controller integration tests](../../home-debit/src/test/java/ph/hcph/homedebit/customer/CustomerControllerTests.java)
 * [Customer API](./backend/customer-api.md)
 * [Local development](./local-development.md)

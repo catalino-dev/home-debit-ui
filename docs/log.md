@@ -1,5 +1,20 @@
 # Documentation Update Log
 
+## 2026-10-30 (Week 4)
+* **US-07 account status**: `AccountStatusService` / `FakeAccountStatusService`
+  (`async*` + `yield*` over `Stream.periodic`), `AccountStatusBloc` with
+  `emit.forEach`, auto-updating Account Status card.
+* **US-08 package**: `intl` `DateFormat` via `DateTime.syncTimestamp`
+  (`Last synchronized: 30 Oct 2026, 3:17:05 PM`).
+* **US-10 dashboard**: `flutter_bloc`; `CustomerProfileBloc`
+  (Requested/RetryRequested/Updated → Loading/Loaded/LoadFailure);
+  `ProfileScreen` is stateless and provides both blocs per route; null-safe
+  greeting; `bloc_test` dev dependency.
+* **Docs**: added `week-4/` (US-07..US-10 guides incl. Hot Reload/Restart),
+  `week-4-exercise-results.md` with six live screenshots (`id=24..25`, stamp
+  `202610301550`), and `presentation/week4-demo-script.md`; updated frontend
+  architecture and test evidence (Flutter 74 tests).
+
 ## 2026-10-30 (Week 3)
 * **US-05 async profile loading**: `CustomerProfileService`
   (`Future<Customer> loadProfile(id)`); default `FakeCustomerProfileService`

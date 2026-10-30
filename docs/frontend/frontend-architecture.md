@@ -1,10 +1,10 @@
 ---
 type: Reference
 title: Frontend architecture
-description: Maps the Flutter app's entry point, screens, reusable widgets, model, utilities, theme, and service responsibilities, including Week 2 profile editing and Week 3 asynchronous profile loading.
+description: Maps the Flutter app's entry point, screens, reusable widgets, model, utilities, theme, and service responsibilities, including Week 2 profile editing, Week 3 asynchronous profile loading, and the Week 4 BLoC dashboard.
 resource: workspace:home-debit-ui/lib
 tags: [flutter, frontend, architecture, home-debit]
-timestamp: 2026-10-30T15:30:00+08:00
+timestamp: 2026-10-30T16:00:00+08:00
 okf_version: "0.1"
 source: ../../lib/main.dart
 ---
@@ -15,13 +15,15 @@ source: ../../lib/main.dart
 | Area | Files | Responsibility |
 |---|---|---|
 | App bootstrap | `lib/main.dart` | Calls `runApp`; `MyApp` is the composition root that creates `CustomerService` and the profile service once, sets the theme/title, and selects the registration screen. |
-| Screens | `lib/screens/` | Registration form, profile display, and profile editing (`edit_profile_screen.dart`). |
-| Reusable UI | `lib/widgets/` | `AppCard`/`AppLabelValue`, `AppTextField`, `AppPrimaryButton`, `AppSecondaryButton`, `AppErrorMessage`, `AppLoadingView`, `AppErrorView` (message + Retry), `AppSwitchTile`. |
-| Domain data | `lib/models/customer.dart` | Immutable customer values (`int? id`, three required strings, `String? nickname`) with JSON mapping and value equality. |
-| Utilities | `lib/utils/` | `CustomerValidators` (shared by Registration and Edit) and the `nullIfBlank` string extension. |
+| Screens | `lib/screens/` | Registration form, the customer dashboard (`profile_screen.dart` — provides the blocs and renders their states), and profile editing (`edit_profile_screen.dart`). |
+| State (BLoC) | `lib/blocs/` | `CustomerProfileBloc` (load / Retry / edit updates) and `AccountStatusBloc` (account-status stream), each with sealed events and states. |
+| Reusable UI | `lib/widgets/` | `AppCard`/`AppLabelValue`, `AppTextField`, `AppPrimaryButton`, `AppSecondaryButton`, `AppErrorMessage`, `AppLoadingView`, `AppErrorView` (message + Retry), `AppSwitchTile`, `AppStatusRow`. |
+| Domain data | `lib/models/customer.dart`, `account_status.dart` | Immutable customer values (`int? id`, three required strings, `String? nickname`) with JSON mapping and value equality. |
+| Utilities | `lib/utils/` | `CustomerValidators` (shared by Registration and Edit), the `nullIfBlank` string extension, and the `syncTimestamp` date extension (`intl`). |
 | API configuration | `lib/config/api_config.dart` | Selects a platform-aware local API URL with an optional `API_BASE_URL` override; `USE_BACKEND_PROFILE` switches the profile source to the backend. |
 | Service boundary | `lib/services/customer_service.dart` | `register` (`POST`), `update` (`PUT`), and `loadProfile` (`GET`), mapping responses and errors from the Spring API; `savedCustomers` broadcasts every confirmed save. |
 | Profile read side | `lib/services/customer_profile_service.dart`, `fake_customer_profile_service.dart` | `CustomerProfileService.loadProfile` returns `Future<Customer>`; the default fake keeps an in-memory copy fed by `savedCustomers`, waits 2 s, and can fail the next load on demand. |
+| Account status | `lib/services/account_status_service.dart`, `fake_account_status_service.dart` | `watchStatus` returns `Stream<AccountStatus>`; the fake is an `async*` generator alternating *Synchronizing...* / *Synchronized* every 3 s. |
 | Theme | `lib/theme/` | Shared colors, spacing, text styles, and Material theme. |
 | Tests | `test/` | Mocked HTTP service tests, model/utility tests, Week 1 widget tests (`widget_test.dart`), Week 2 widget tests (`profile_edit_test.dart`), Week 3 fake-service and profile-loading tests (`fake_customer_profile_service_test.dart`, `profile_loading_test.dart`). |
 
@@ -37,13 +39,17 @@ source: ../../lib/main.dart
    passing the returned customer **id**, the profile service, and the same
    `CustomerService`. API and network failures are shown on the form without
    navigating away.
-6. The profile starts in a loading state and calls
-   `CustomerProfileService.loadProfile(id)` (Week 3). On success it displays
-   the model fields — nickname or `Not provided`; on failure it shows the
-   message with **Retry**. It can always pop back to registration.
+6. The dashboard (`ProfileScreen`) creates `CustomerProfileBloc` and
+   `AccountStatusBloc` for the route (Week 4). The profile bloc calls
+   `CustomerProfileService.loadProfile(id)`: `Loading` → `Loaded` (greeting,
+   model fields, nickname or `Not provided`) or `LoadFailure` (message +
+   **Retry**). The status bloc listens to `watchStatus(id)` and the Account
+   Status card updates on every value. Back pops to registration and closes
+   both blocs, cancelling the stream.
 7. **Edit Profile** pushes `EditProfileScreen` with the current customer.
    Save calls `CustomerService.update` (`PUT /api/customers/{id}`) and pops
-   with the saved customer; the profile replaces its state with it. Cancel
+   with the saved customer; the dashboard adds `CustomerProfileUpdated` and
+   the bloc emits it as the new `Loaded` state. Cancel
    pops with no result and the profile is unchanged.
 
 ## Design decisions
@@ -51,8 +57,8 @@ source: ../../lib/main.dart
 * Screen-specific mutable state (`_isSubmitting`, `_isSaving`,
   `_errorMessage`) stays in each screen's `State`; `setState` rebuilds as it
   changes.
-* `ProfileScreen` became a `StatefulWidget` in Week 2 because it owns the
-  **saved** customer and must replace it after an edit. The **unsaved** draft
+* (Weeks 2–3; superseded by the Week 4 bloc below.) `ProfileScreen` became a
+  `StatefulWidget` in Week 2 because it owns the **saved** customer and must replace it after an edit. The **unsaved** draft
   lives only in `EditProfileScreen`'s controllers, so Cancel discards it. See
   [Edit customer profile (US-04)](../week-2/edit-customer-profile.md).
 * Week 3: the profile is loaded, not passed in. `_loadProfile` uses
@@ -60,6 +66,12 @@ source: ../../lib/main.dart
   ignores loads that finish after the screen closed or a newer load started.
   See [Load customer profile (US-05)](../week-3/load-customer-profile.md) and
   [Handle profile loading errors (US-06)](../week-3/handle-profile-loading-errors.md).
+* Week 4: dashboard state lives in two blocs; widgets only add events and
+  map sealed states with `switch`. The Week 3 `_loadProfile`
+  `try`/`catch` and the saved-customer ownership moved from the screen into
+  `CustomerProfileBloc`, so `ProfileScreen` is stateless again. Registration
+  and Edit keep form-local `setState` state. See
+  [Final customer dashboard (US-10)](../week-4/customer-dashboard-bloc.md).
 * Only genuinely optional data is nullable (`id`, `nickname`); see
   [Optional customer information (US-03)](../week-2/optional-customer-information.md).
 * The reusable widgets centralize input/button/error presentation so screens
