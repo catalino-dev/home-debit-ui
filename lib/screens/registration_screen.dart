@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/customer.dart';
+import '../services/customer_profile_service.dart';
 import '../services/customer_service.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
@@ -8,13 +10,26 @@ import '../utils/customer_validators.dart';
 import '../utils/string_extension.dart';
 import '../widgets/app_error_message.dart';
 import '../widgets/app_primary_button.dart';
+import '../widgets/app_switch_tile.dart';
 import '../widgets/app_text_field.dart';
 import 'profile_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key, this.customerService});
+  const RegistrationScreen({
+    super.key,
+    this.customerService,
+    this.profileService,
+    this.simulateProfileLoadFailure,
+  });
 
   final CustomerService? customerService;
+
+  /// Passed through to [ProfileScreen], which loads the customer with it.
+  final CustomerProfileService? profileService;
+
+  /// US-06 demo control: when set, a debug-only switch makes the next
+  /// profile load fail so the error and Retry flow can be shown.
+  final ValueNotifier<bool>? simulateProfileLoadFailure;
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -77,6 +92,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     try {
       final registered = await _customerService.register(customer);
+      final customerId = registered.id;
+      if (customerId == null) {
+        throw const CustomerServiceException(
+          'The server returned an invalid response. Please try again later.',
+        );
+      }
 
       if (!mounted) return;
 
@@ -88,11 +109,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         ),
       );
 
+      // US-05: hand over only the id; Profile loads the customer itself.
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ProfileScreen(
-            customer: registered,
+            customerId: customerId,
+            profileService: widget.profileService ?? _customerService,
             customerService: _customerService,
           ),
         ),
@@ -115,8 +138,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Local copy so the null check promotes `String?` to `String` below.
+    // Local copies so the null checks promote to non-nullable types below.
     final errorMessage = _errorMessage;
+    final simulateFailure = widget.simulateProfileLoadFailure;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Customer Registration')),
@@ -168,6 +192,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   isLoading: _isSubmitting,
                   onPressed: _handleRegister,
                 ),
+                if (kDebugMode && simulateFailure != null)
+                  ValueListenableBuilder<bool>(
+                    valueListenable: simulateFailure,
+                    builder: (context, failNext, _) => AppSwitchTile(
+                      key: const ValueKey('simulate-profile-load-failure'),
+                      label: 'Simulate profile load failure',
+                      description:
+                          'Demo only: the next profile load fails once, '
+                          'so Retry can succeed.',
+                      value: failNext,
+                      onChanged: (value) => simulateFailure.value = value,
+                    ),
+                  ),
               ],
             ),
           ),

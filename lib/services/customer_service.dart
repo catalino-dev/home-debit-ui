@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../models/customer.dart';
+import 'customer_profile_service.dart';
 
 class CustomerServiceException implements Exception {
   final String message;
@@ -15,20 +16,27 @@ class CustomerServiceException implements Exception {
   String toString() => message;
 }
 
-class CustomerService {
+class CustomerService implements CustomerProfileService {
   static const _timeout = Duration(seconds: 15);
   static const _jsonHeaders = {'Content-Type': 'application/json'};
   static const _duplicateEmailMessage =
       'An account with this email already exists. Use a different email.';
   static const _invalidResponseMessage =
       'The server returned an invalid response. Please try again later.';
+  static const _profileMissingMessage =
+      'This profile no longer exists. Please register again.';
 
   final http.Client _client;
   final Uri _baseUri;
+  final _savedCustomers = StreamController<Customer>.broadcast();
 
   CustomerService({http.Client? client, Uri? baseUri})
     : _client = client ?? http.Client(),
       _baseUri = baseUri ?? ApiConfig.baseUri;
+
+  /// Every customer the backend confirms on register or update, so a
+  /// read-side cache (e.g. `FakeCustomerProfileService`) can stay in sync.
+  Stream<Customer> get savedCustomers => _savedCustomers.stream;
 
   /// US-01/US-03: `POST /api/customers`, expecting `201 Created`.
   Future<Customer> register(Customer customer) async {
@@ -47,6 +55,24 @@ class CustomerService {
           fallback:
               'Registration could not be completed. Please try again later.',
         ),
+      );
+    }
+    return _publish(_decodeCustomer(response));
+  }
+
+  /// US-05: `GET /api/customers/{id}`, expecting `200 OK`.
+  @override
+  Future<Customer> loadProfile(int customerId) async {
+    final response = await _send(
+      () => _client.get(_baseUri.resolve('/api/customers/$customerId')),
+    );
+
+    if (response.statusCode == 404) {
+      throw const CustomerServiceException(_profileMissingMessage);
+    }
+    if (response.statusCode != 200) {
+      throw const CustomerServiceException(
+        'Your profile could not be loaded. Please try again later.',
       );
     }
     return _decodeCustomer(response);
@@ -74,9 +100,7 @@ class CustomerService {
     );
 
     if (response.statusCode == 404) {
-      throw const CustomerServiceException(
-        'This profile no longer exists. Please register again.',
-      );
+      throw const CustomerServiceException(_profileMissingMessage);
     }
     if (response.statusCode != 200) {
       throw CustomerServiceException(
@@ -86,7 +110,12 @@ class CustomerService {
         ),
       );
     }
-    return _decodeCustomer(response);
+    return _publish(_decodeCustomer(response));
+  }
+
+  Customer _publish(Customer customer) {
+    _savedCustomers.add(customer);
+    return customer;
   }
 
   Future<http.Response> _send(Future<http.Response> Function() request) async {

@@ -3,6 +3,10 @@ import 'package:flutter/foundation.dart';
 abstract final class ApiConfig {
   static const _configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
 
+  /// `--dart-define=USE_BACKEND_PROFILE=true` loads the Profile from
+  /// `GET /api/customers/{id}` instead of the Week 3 in-memory fake.
+  static const useBackendProfile = bool.fromEnvironment('USE_BACKEND_PROFILE');
+
   static Uri get baseUri {
     if (_configuredBaseUrl.trim().isNotEmpty) {
       return Uri.parse(_configuredBaseUrl.trim());

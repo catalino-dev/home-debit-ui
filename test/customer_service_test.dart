@@ -272,4 +272,121 @@ void main() {
       );
     });
   });
+
+  group('loadProfile (US-05)', () {
+    const persistedJson =
+        '{"id":7,"fullName":"Juan Dela Cruz","email":"juan@example.com",'
+        '"mobileNumber":"09201234567","nickname":"Juanito"}';
+
+    Matcher failsWith(Object message) => throwsA(
+      isA<CustomerServiceException>().having(
+        (exception) => exception.message,
+        'message',
+        message,
+      ),
+    );
+
+    test('loadProfile_gets the customer by id and maps 200', () async {
+      late http.Request capturedRequest;
+      final service = CustomerService(
+        client: MockClient((request) async {
+          capturedRequest = request;
+          return http.Response(persistedJson, 200);
+        }),
+        baseUri: baseUri,
+      );
+
+      final loaded = await service.loadProfile(7);
+
+      expect(capturedRequest.method, 'GET');
+      expect(
+        capturedRequest.url,
+        Uri.parse('http://localhost:8080/api/customers/7'),
+      );
+      expect(
+        loaded,
+        const Customer(
+          id: 7,
+          fullName: 'Juan Dela Cruz',
+          email: 'juan@example.com',
+          mobileNumber: '09201234567',
+          nickname: 'Juanito',
+        ),
+      );
+    });
+
+    test('loadProfile_maps not found to a profile-missing message', () {
+      final service = CustomerService(
+        client: MockClient((_) async => http.Response('', 404)),
+        baseUri: baseUri,
+      );
+
+      expect(service.loadProfile(7), failsWith(contains('no longer exists')));
+    });
+
+    test('loadProfile_maps other statuses to a retryable message', () {
+      final service = CustomerService(
+        client: MockClient((_) async => http.Response('', 500)),
+        baseUri: baseUri,
+      );
+
+      expect(
+        service.loadProfile(7),
+        failsWith(contains('could not be loaded')),
+      );
+    });
+
+    test('loadProfile_maps client failure to actionable network error', () {
+      final service = CustomerService(
+        client: MockClient(
+          (_) async => throw http.ClientException('connection refused'),
+        ),
+        baseUri: baseUri,
+      );
+
+      expect(service.loadProfile(7), failsWith(contains('backend is running')));
+    });
+  });
+
+  test('savedCustomers_emits customers confirmed by register and update', () {
+    var nextStatus = 201;
+    final service = CustomerService(
+      client: MockClient(
+        (request) async => http.Response(
+          '{"id":5,"fullName":"Jane Doe","email":"jane.doe@example.com",'
+          '"mobileNumber":"09171234567"}',
+          nextStatus,
+        ),
+      ),
+      baseUri: baseUri,
+    );
+
+    expect(service.savedCustomers.map((c) => c.id), emitsInOrder([5, 5]));
+
+    service.register(customer).then((saved) {
+      nextStatus = 200;
+      return service.update(saved);
+    });
+  });
+
+  test(
+    'savedCustomers_does not emit when the backend rejects a save',
+    () async {
+      final service = CustomerService(
+        client: MockClient((_) async => http.Response('', 409)),
+        baseUri: baseUri,
+      );
+      final emitted = <Customer>[];
+      final subscription = service.savedCustomers.listen(emitted.add);
+
+      await expectLater(
+        service.register(customer),
+        throwsA(isA<CustomerServiceException>()),
+      );
+      await pumpEventQueue();
+
+      expect(emitted, isEmpty);
+      await subscription.cancel();
+    },
+  );
 }
