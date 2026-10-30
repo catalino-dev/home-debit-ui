@@ -1,118 +1,92 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../blocs/account_status/account_status_bloc.dart';
+import '../blocs/customer_profile/customer_profile_bloc.dart';
 import '../models/customer.dart';
+import '../services/account_status_service.dart';
 import '../services/customer_profile_service.dart';
 import '../services/customer_service.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_text_styles.dart';
+import '../utils/date_time_extension.dart';
 import '../widgets/app_card.dart';
 import '../widgets/app_error_view.dart';
 import '../widgets/app_loading_view.dart';
 import '../widgets/app_primary_button.dart';
 import '../widgets/app_secondary_button.dart';
+import '../widgets/app_status_row.dart';
 import 'edit_profile_screen.dart';
 
-/// Loads the customer asynchronously (US-05), shows a recoverable error with
-/// Retry when that fails (US-06), and owns the loaded customer so a
-/// successful edit (US-04) can replace it.
-class ProfileScreen extends StatefulWidget {
+/// US-10 customer dashboard: the profile (loaded with retry, US-05/06) and
+/// the live account status (US-07).
+///
+/// This widget only creates the blocs for this route; [_ProfileView] renders
+/// their states. Each bloc is closed automatically when the route is popped,
+/// which also cancels the status Stream subscription.
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
     super.key,
     required this.customerId,
     required this.profileService,
+    required this.accountStatusService,
     this.customerService,
   });
 
   final int customerId;
   final CustomerProfileService profileService;
+  final AccountStatusService accountStatusService;
 
   /// Used by Edit Profile to save changes.
   final CustomerService? customerService;
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => CustomerProfileBloc(
+            profileService: profileService,
+            customerId: customerId,
+          )..add(const CustomerProfileRequested()),
+        ),
+        BlocProvider(
+          create: (_) => AccountStatusBloc(
+            statusService: accountStatusService,
+            customerId: customerId,
+          )..add(const AccountStatusSubscriptionRequested()),
+        ),
+      ],
+      child: _ProfileView(customerService: customerService),
+    );
+  }
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  static const _notProvided = 'Not provided';
-  static const _unexpectedErrorMessage =
-      'Something went wrong while loading your profile. Please try again.';
+class _ProfileView extends StatelessWidget {
+  const _ProfileView({this.customerService});
 
-  // Exactly one of these drives the body: loading, error, or the customer.
-  // Starts loading because the load begins as soon as the screen opens.
-  bool _isLoading = true;
-  String? _errorMessage;
-  Customer? _customer;
-  int _loadGeneration = 0;
-  @override
-  void initState() {
-    super.initState();
-    // Not awaited: initState must return synchronously, and the UI must
-    // stay responsive (showing the loading state) while the Future runs.
-    _loadProfile();
-  }
+  final CustomerService? customerService;
 
-  @override
-  void didUpdateWidget(covariant ProfileScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.customerId != oldWidget.customerId ||
-        widget.profileService != oldWidget.profileService) {
-      _retry();
-    }
-  }
-
-  void _retry() {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-    _loadProfile();
-  }
-
-  /// US-05/US-06: the whole loading -> success/error flow.
-  Future<void> _loadProfile() async {
-    // A newer load (e.g. after the customer id changed) supersedes this one.
-    final generation = ++_loadGeneration;
-    bool isCurrent() => mounted && generation == _loadGeneration;
-
-    try {
-      // A `Future<Customer>` is only a promise; `await` suspends here until
-      // it completes and unwraps the actual `Customer` (or rethrows).
-      final customer = await widget.profileService.loadProfile(
-        widget.customerId,
-      );
-      if (!isCurrent()) return;
-      setState(() => _customer = customer);
-    } on CustomerServiceException catch (exception) {
-      if (!isCurrent()) return;
-      setState(() => _errorMessage = exception.message);
-    } catch (_) {
-      // Anything unexpected still becomes a visible, retryable error.
-      if (!isCurrent()) return;
-      setState(() => _errorMessage = _unexpectedErrorMessage);
-    } finally {
-      // Runs after success *and* failure, so loading can never get stuck.
-      if (isCurrent()) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _openEditProfile(Customer customer) async {
+  Future<void> _openEditProfile(BuildContext context, Customer customer) async {
+    final bloc = context.read<CustomerProfileBloc>();
+    final messenger = ScaffoldMessenger.of(context);
     // Don't let e.g. "Registration successful" cover the Edit form's buttons.
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    messenger.hideCurrentSnackBar();
     // Edit returns the saved Customer on Save, or null on Cancel/back.
     final updated = await Navigator.push<Customer>(
       context,
       MaterialPageRoute(
         builder: (context) => EditProfileScreen(
           customer: customer,
-          customerService: widget.customerService,
+          customerService: customerService,
         ),
       ),
     );
-    if (!mounted || updated == null) return;
+    if (updated == null || bloc.isClosed) return;
 
-    setState(() => _customer = updated);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Profile updated')));
+    bloc.add(CustomerProfileUpdated(updated));
+    messenger.showSnackBar(const SnackBar(content: Text('Profile updated')));
   }
 
   @override
@@ -126,7 +100,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: AppSpacing.large,
             children: [
-              ..._buildContent(),
+              const _AccountStatusCard(),
+              BlocBuilder<CustomerProfileBloc, CustomerProfileState>(
+                builder: (context, state) => switch (state) {
+                  CustomerProfileLoading() => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppSpacing.large),
+                    child: AppLoadingView(message: 'Loading your profile...'),
+                  ),
+                  CustomerProfileLoadFailure(:final message) => AppErrorView(
+                    key: const ValueKey('profile-load-error'),
+                    message: message,
+                    onRetry: () => context.read<CustomerProfileBloc>().add(
+                      const CustomerProfileRetryRequested(),
+                    ),
+                  ),
+                  CustomerProfileLoaded(:final customer) => _CustomerDetails(
+                    customer: customer,
+                    onEdit: () => _openEditProfile(context, customer),
+                  ),
+                },
+              ),
               AppSecondaryButton(
                 label: 'Back to Registration',
                 onPressed: () => Navigator.pop(context),
@@ -137,52 +130,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+}
 
-  List<Widget> _buildContent() {
-    // Local copies so the null checks promote to non-nullable types.
-    final errorMessage = _errorMessage;
-    final customer = _customer;
+class _CustomerDetails extends StatelessWidget {
+  const _CustomerDetails({required this.customer, required this.onEdit});
 
-    if (_isLoading) {
-      return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.large),
-          child: AppLoadingView(message: 'Loading your profile...'),
-        ),
-      ];
-    }
-    if (errorMessage != null) {
-      return [
-        AppErrorView(
-          key: const ValueKey('profile-load-error'),
-          message: errorMessage,
-          onRetry: _retry,
-        ),
-      ];
-    }
-    if (customer == null) return const [];
+  static const _notProvided = 'Not provided';
 
-    return [
-      AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: AppSpacing.normal,
-          children: [
-            AppLabelValue(label: 'Full Name', value: customer.fullName),
-            AppLabelValue(label: 'Email', value: customer.email),
-            AppLabelValue(label: 'Mobile Number', value: customer.mobileNumber),
-            AppLabelValue(
-              label: 'Nickname',
-              // US-03: `??` supplies the fallback when nickname is null.
-              value: customer.nickname ?? _notProvided,
-            ),
-          ],
+  final Customer customer;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    // US-03 null safety: `??` picks a fallback whenever nickname is null.
+    final greetingName = customer.nickname ?? customer.fullName;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: AppSpacing.large,
+      children: [
+        Text('Welcome, $greetingName', style: AppTextStyles.subheadline),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: AppSpacing.normal,
+            children: [
+              AppLabelValue(label: 'Full Name', value: customer.fullName),
+              AppLabelValue(label: 'Email', value: customer.email),
+              AppLabelValue(
+                label: 'Mobile Number',
+                value: customer.mobileNumber,
+              ),
+              AppLabelValue(
+                label: 'Nickname',
+                value: customer.nickname ?? _notProvided,
+              ),
+            ],
+          ),
         ),
+        AppPrimaryButton(label: 'Edit Profile', onPressed: onEdit),
+      ],
+    );
+  }
+}
+
+class _AccountStatusCard extends StatelessWidget {
+  const _AccountStatusCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      key: const ValueKey('account-status'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: AppSpacing.small,
+        children: [
+          const Text('Account Status', style: AppTextStyles.caption),
+          // Rebuilds automatically for every value the Stream emits.
+          BlocBuilder<AccountStatusBloc, AccountStatusState>(
+            builder: (context, state) => switch (state) {
+              AccountStatusInitial() => const AppStatusRow(
+                icon: Icons.sync,
+                color: AppColorTheme.secondaryText,
+                label: 'Checking status...',
+              ),
+              AccountStatusUnavailable() => const AppStatusRow(
+                icon: Icons.sync_problem,
+                color: AppColorTheme.errorText,
+                label: 'Status unavailable',
+              ),
+              AccountStatusUpdated(:final status, :final lastSynchronizedAt) =>
+                AppStatusRow(
+                  icon: status.isSynchronized ? Icons.cloud_done : Icons.sync,
+                  color: status.isSynchronized
+                      ? AppColorTheme.successText
+                      : AppColorTheme.info,
+                  label: status.state.label,
+                  caption: lastSynchronizedAt == null
+                      ? null
+                      : 'Last synchronized: '
+                            '${lastSynchronizedAt.syncTimestamp}',
+                ),
+            },
+          ),
+        ],
       ),
-      AppPrimaryButton(
-        label: 'Edit Profile',
-        onPressed: () => _openEditProfile(customer),
-      ),
-    ];
+    );
   }
 }
