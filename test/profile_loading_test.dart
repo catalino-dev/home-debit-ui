@@ -6,8 +6,10 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'package:home_debit_ui/main.dart';
+import 'package:home_debit_ui/models/account_status.dart';
 import 'package:home_debit_ui/models/customer.dart';
 import 'package:home_debit_ui/screens/profile_screen.dart';
+import 'package:home_debit_ui/services/account_status_service.dart';
 import 'package:home_debit_ui/services/customer_profile_service.dart';
 import 'package:home_debit_ui/services/customer_service.dart';
 import 'package:home_debit_ui/services/fake_customer_profile_service.dart';
@@ -26,6 +28,12 @@ class _ControlledProfileService implements CustomerProfileService {
   }
 }
 
+/// Status feed that never emits, so these tests focus on profile loading.
+class _SilentStatusService implements AccountStatusService {
+  @override
+  Stream<AccountStatus> watchStatus(int customerId) => const Stream.empty();
+}
+
 /// Week 3 scenarios: US-05 (async load) and US-06 (load errors + Retry).
 void main() {
   const juan = Customer(
@@ -41,7 +49,13 @@ void main() {
   Future<_ControlledProfileService> pumpProfile(WidgetTester tester) async {
     final service = _ControlledProfileService();
     await tester.pumpWidget(
-      MaterialApp(home: ProfileScreen(customerId: 7, profileService: service)),
+      MaterialApp(
+        home: ProfileScreen(
+          customerId: 7,
+          profileService: service,
+          accountStatusService: _SilentStatusService(),
+        ),
+      ),
     );
     return service;
   }
@@ -81,6 +95,7 @@ void main() {
                     builder: (_) => ProfileScreen(
                       customerId: 7,
                       profileService: _ControlledProfileService(),
+                      accountStatusService: _SilentStatusService(),
                     ),
                   ),
                 ),

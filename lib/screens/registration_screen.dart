@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/customer.dart';
+import '../services/account_status_service.dart';
 import '../services/customer_profile_service.dart';
 import '../services/customer_service.dart';
+import '../services/fake_account_status_service.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../utils/customer_validators.dart';
@@ -19,6 +21,7 @@ class RegistrationScreen extends StatefulWidget {
     super.key,
     this.customerService,
     this.profileService,
+    this.accountStatusService,
     this.simulateProfileLoadFailure,
   });
 
@@ -26,6 +29,9 @@ class RegistrationScreen extends StatefulWidget {
 
   /// Passed through to [ProfileScreen], which loads the customer with it.
   final CustomerProfileService? profileService;
+
+  /// Passed through to [ProfileScreen] for the live account status (US-07).
+  final AccountStatusService? accountStatusService;
 
   /// US-06 demo control: when set, a debug-only switch makes the next
   /// profile load fail so the error and Retry flow can be shown.
@@ -116,6 +122,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           builder: (context) => ProfileScreen(
             customerId: customerId,
             profileService: widget.profileService ?? _customerService,
+            accountStatusService:
+                widget.accountStatusService ?? FakeAccountStatusService(),
             customerService: _customerService,
           ),
         ),

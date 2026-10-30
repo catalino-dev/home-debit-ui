@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'config/api_config.dart';
 import 'screens/registration_screen.dart';
+import 'services/account_status_service.dart';
 import 'services/customer_profile_service.dart';
 import 'services/customer_service.dart';
+import 'services/fake_account_status_service.dart';
 import 'services/fake_customer_profile_service.dart';
 import 'theme/app_theme.dart';
 
@@ -13,13 +15,21 @@ void main() {
 
 /// Composition root: creates the services once and hands them down.
 class MyApp extends StatefulWidget {
-  const MyApp({super.key, this.customerService, this.profileService});
+  const MyApp({
+    super.key,
+    this.customerService,
+    this.profileService,
+    this.accountStatusService,
+  });
 
   final CustomerService? customerService;
 
   /// Defaults to [FakeCustomerProfileService] (Week 3), or to the backend
   /// when built with `--dart-define=USE_BACKEND_PROFILE=true`.
   final CustomerProfileService? profileService;
+
+  /// Defaults to [FakeAccountStatusService] (Week 4, US-07).
+  final AccountStatusService? accountStatusService;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -28,6 +38,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   late final CustomerService _customerService;
   late final CustomerProfileService _profileService;
+  late final AccountStatusService _accountStatusService;
 
   // Only a fake created here is disposed here; injected services are owned
   // by whoever injected them.
@@ -38,6 +49,8 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _customerService = widget.customerService ?? CustomerService();
     _profileService = widget.profileService ?? _defaultProfileService();
+    _accountStatusService =
+        widget.accountStatusService ?? FakeAccountStatusService();
   }
 
   CustomerProfileService _defaultProfileService() {
@@ -63,6 +76,7 @@ class _MyAppState extends State<MyApp> {
       home: RegistrationScreen(
         customerService: _customerService,
         profileService: profileService,
+        accountStatusService: _accountStatusService,
         // Debug-only demo switch for US-06; null hides it.
         simulateProfileLoadFailure: profileService is FakeCustomerProfileService
             ? profileService.failNextLoad
